@@ -1,0 +1,53 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      ollama:
+        image: ollama/ollama:latest
+        ports:
+          - "11434:11434"
+        options: >-
+          --health-cmd="curl -f http://localhost:11434 || exit 1"
+          --health-interval=30s --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Poetry and dependencies
+        run: |
+          pip install poetry
+          cd backend
+          poetry install --with dev
+      
+      - name: Install Playwright
+        run: |
+          cd backend
+          poetry run playwright install --with-deps
+      
+      - name: Run Python linting
+        run: |
+          cd backend
+          poetry run ruff check
+      
+      - name: Run Python tests
+        run: |
+          cd backend
+          poetry run pytest -q
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install and test frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run lint
+          npm test 

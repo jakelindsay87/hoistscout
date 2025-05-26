@@ -1,0 +1,91 @@
+services:
+  # Backend API Service
+  - type: web
+    name: hoistscraper-api
+    runtime: docker
+    repo: https://github.com/<your-org>/hoistscraper # Update with your actual repo
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: OLLAMA_HOST
+        value: http://ollama:11434
+      - key: CRAWL_CONCURRENCY
+        value: "8"
+      - key: DATABASE_URL
+        sync: false # Set this in Render dashboard
+      - key: SMTP_SERVER
+        value: smtp.gmail.com
+      - key: SMTP_USER
+        sync: false # Set this in Render dashboard
+      - key: SMTP_PASSWORD
+        sync: false # Set this in Render dashboard
+      - key: NOTIFY_EMAIL
+        sync: false # Set this in Render dashboard
+      - key: ANALYZE_TERMS
+        value: "true"
+    healthCheckPath: /health # Adjust if your API has a different health endpoint
+    
+  # Ollama Service (if you need it as a separate service)
+  - type: web
+    name: ollama
+    runtime: docker
+    repo: https://github.com/ollama/ollama
+    dockerCommand: serve --model mistral:7b-q4_K_M
+    envVars:
+      - key: OLLAMA_MODELS
+        value: mistral:7b-q4_K_M
+    disk:
+      name: ollama-data
+      mountPath: /root/.ollama
+      sizeGB: 10
+    healthCheckPath: /
+    
+  # Frontend Service
+  - type: web
+    name: hoistscraper-fe
+    runtime: node
+    repo: https://github.com/<your-org>/hoistscraper # Update with your actual repo
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://hoistscraper-api.onrender.com # Update with your actual API service URL
+      - key: NODE_ENV
+        value: production
+
+# Background Jobs
+jobs:
+  # Daily crawl job
+  - type: cron
+    name: daily-crawl
+    runtime: docker
+    repo: https://github.com/<your-org>/hoistscraper # Update with your actual repo
+    dockerfilePath: ./backend/Dockerfile
+    schedule: "0 14 * * *" # 2 PM UTC daily
+    dockerCommand: python scripts/run_crawl.py --config sites.yml
+    envVars:
+      - key: OLLAMA_HOST
+        value: http://ollama:11434
+      - key: CRAWL_CONCURRENCY
+        value: "8"
+      - key: DATABASE_URL
+        sync: false # Set this in Render dashboard
+      - key: CRAWL_CONFIG
+        value: sites.yml
+      - key: ANALYZE_TERMS
+        value: "true"
+      - key: SMTP_SERVER
+        value: smtp.gmail.com
+      - key: SMTP_USER
+        sync: false # Set this in Render dashboard
+      - key: SMTP_PASSWORD
+        sync: false # Set this in Render dashboard
+      - key: NOTIFY_EMAIL
+        sync: false # Set this in Render dashboard
+
+# Databases (if needed)
+databases:
+  - name: hoistscraper-db
+    databaseName: hoistscraper
+    user: hoistscraper_user
+    plan: free # or starter/standard based on your needs 

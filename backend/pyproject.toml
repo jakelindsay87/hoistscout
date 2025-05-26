@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "hoistscraper-backend"
+version = "0.1.0"
+description = "FastAPI backend with Playwright crawler and extractor"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.110"
+playwright = "^1.44"
+playwright-stealth = "^1.0"
+uvicorn = {extras = ["standard"], version = "^0.29"}
+beautifulsoup4 = "^4.12"
+httpx = "^0.27"
+tenacity = "^8.2"
+firecrawl-py = "^0.0.6"
+ollama = "^0.1.7"
+sqlmodel = "^0.0.16"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2"
+pytest-playwright = "^0.4"
+ruff = "^0.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api" 

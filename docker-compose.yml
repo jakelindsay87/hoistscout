@@ -1,0 +1,37 @@
+services:
+  # ollama:
+  #   image: ollama/ollama:0.1.40
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #   command: ["ollama", "serve"]
+  #   ports:
+  #     - "11434:11434"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:11434"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+
+  backend:
+    build: ./backend
+    environment:
+      OLLAMA_HOST: http://ollama:11434 # This will likely not be reachable, but backend should handle it
+      CRAWL_CONCURRENCY: "8"
+    # depends_on:
+    #   ollama:
+    #     condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "3000:3000"
+
+# volumes:
+#   ollama-data: 
