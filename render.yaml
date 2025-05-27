@@ -53,7 +53,7 @@ services:
       - key: NODE_ENV
         value: production
 
-# Daily crawl job (moved under services)
+# Daily crawl job
 - type: cron
   name: daily-crawl
   runtime: docker
