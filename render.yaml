@@ -53,14 +53,14 @@ services:
       - key: NODE_ENV
         value: production
 
-# Daily crawl job
-- type: cron
-  name: daily-crawl
-  runtime: docker
-  repo: https://github.com/jakelindsay87/hoistscraper
-  dockerfilePath: ./backend/Dockerfile
-  schedule: "0 14 * * *" # 2 PM UTC daily
-  dockerCommand: python scripts/run_crawl.py --config sites.yml
+  # Daily crawl job
+-   type: cron
+    name: daily-crawl
+    runtime: docker
+    repo: https://github.com/jakelindsay87/hoistscraper
+    dockerfilePath: ./backend/Dockerfile
+    schedule: "0 14 * * *" # 2 PM UTC daily
+    dockerCommand: python scripts/run_crawl.py --config sites.yml
   envVars:
     - key: OLLAMA_HOST
       value: http://ollama:11434
