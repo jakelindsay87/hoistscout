@@ -3,8 +3,9 @@ services:
   - type: web
     name: hoistscraper-api
     runtime: docker
-    repo: https://github.com/<your-org>/hoistscraper # Update with your actual repo
-    dockerfilePath: ./backend/Dockerfile
+    repo: https://github.com/jakelindsay87/hoistscraper # Update with your actual repo
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: OLLAMA_HOST
         value: http://ollama:11434
@@ -43,7 +44,7 @@ services:
   - type: web
     name: hoistscraper-fe
     runtime: node
-    repo: https://github.com/<your-org>/hoistscraper # Update with your actual repo
+    repo: https://github.com/jakelindsay87/hoistscraper # Update with your actual repo
     rootDir: frontend
     buildCommand: npm install && npm run build
     startCommand: npm run start
@@ -59,8 +60,9 @@ jobs:
   - type: cron
     name: daily-crawl
     runtime: docker
-    repo: https://github.com/<your-org>/hoistscraper # Update with your actual repo
-    dockerfilePath: ./backend/Dockerfile
+    repo: https://github.com/jakelindsay87/hoistscraper # Update with your actual repo
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
     schedule: "0 14 * * *" # 2 PM UTC daily
     dockerCommand: python scripts/run_crawl.py --config sites.yml
     envVars:
