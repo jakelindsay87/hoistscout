@@ -25,11 +25,9 @@ services:
   # Frontend Service
   - type: web
     name: hoistscraper-fe
-    runtime: node
+    runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    startCommand: npm run start
+    dockerfilePath: ./frontend/Dockerfile
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://hoistscraper-api.onrender.com
