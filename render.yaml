@@ -53,35 +53,33 @@ services:
       - key: NODE_ENV
         value: production
 
-# Background Jobs
-jobs:
-  # Daily crawl job
-  - type: cron
-    name: daily-crawl
-    runtime: docker
-    repo: https://github.com/jakelindsay87/hoistscraper
-    dockerfilePath: ./backend/Dockerfile
-    schedule: "0 14 * * *" # 2 PM UTC daily
-    dockerCommand: python scripts/run_crawl.py --config sites.yml
-    envVars:
-      - key: OLLAMA_HOST
-        value: http://ollama:11434
-      - key: CRAWL_CONCURRENCY
-        value: "8"
-      - key: DATABASE_URL
-        sync: false # Set this in Render dashboard
-      - key: CRAWL_CONFIG
-        value: sites.yml
-      - key: ANALYZE_TERMS
-        value: "true"
-      - key: SMTP_SERVER
-        value: smtp.gmail.com
-      - key: SMTP_USER
-        sync: false # Set this in Render dashboard
-      - key: SMTP_PASSWORD
-        sync: false # Set this in Render dashboard
-      - key: NOTIFY_EMAIL
-        sync: false # Set this in Render dashboard
+# Daily crawl job (moved under services)
+- type: cron
+  name: daily-crawl
+  runtime: docker
+  repo: https://github.com/jakelindsay87/hoistscraper
+  dockerfilePath: ./backend/Dockerfile
+  schedule: "0 14 * * *" # 2 PM UTC daily
+  dockerCommand: python scripts/run_crawl.py --config sites.yml
+  envVars:
+    - key: OLLAMA_HOST
+      value: http://ollama:11434
+    - key: CRAWL_CONCURRENCY
+      value: "8"
+    - key: DATABASE_URL
+      sync: false # Set this in Render dashboard
+    - key: CRAWL_CONFIG
+      value: sites.yml
+    - key: ANALYZE_TERMS
+      value: "true"
+    - key: SMTP_SERVER
+      value: smtp.gmail.com
+    - key: SMTP_USER
+      sync: false # Set this in Render dashboard
+    - key: SMTP_PASSWORD
+      sync: false # Set this in Render dashboard
+    - key: NOTIFY_EMAIL
+      sync: false # Set this in Render dashboard
 
 # Databases (if needed)
 databases:
