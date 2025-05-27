@@ -54,7 +54,7 @@ services:
         value: production
 
   # Daily crawl job
--   type: cron
+  - type: cron
     name: daily-crawl
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
