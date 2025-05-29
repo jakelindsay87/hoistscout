@@ -8,8 +8,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy pyproject.toml and poetry.lock
-COPY pyproject.toml poetry.lock* ./
+# Copy pyproject.toml and poetry.lock from backend directory
+COPY backend/pyproject.toml backend/poetry.lock* ./
 
 # Install dependencies, including dev for testing
 RUN pip install --no-cache-dir poetry && \
@@ -19,8 +19,8 @@ RUN pip install --no-cache-dir poetry && \
 # Install Playwright and browsers
 RUN playwright install --with-deps chromium
 
-# Copy application code
-COPY . .
+# Copy application code from backend directory
+COPY backend/ .
 
 # Expose port
 EXPOSE 8000
