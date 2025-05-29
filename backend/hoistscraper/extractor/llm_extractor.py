@@ -4,6 +4,7 @@ import os
 import json
 import logging
 from typing import Dict, Any, Optional
+from bs4 import BeautifulSoup
 from firecrawl import Firecrawl
 
 from .schemas import OPPORTUNITY_EXTRACTION_SCHEMA, TERMS_ANALYSIS_SCHEMA
@@ -12,7 +13,13 @@ from .schemas import OPPORTUNITY_EXTRACTION_SCHEMA, TERMS_ANALYSIS_SCHEMA
 logger = logging.getLogger(__name__)
 
 # Initialize Firecrawl with Ollama backend
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+# In production, use internal service networking
+if os.getenv("RENDER"):
+    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+else:
+    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+
+logger.info(f"Initializing Firecrawl with Ollama at {OLLAMA_HOST}")
 FC = Firecrawl(model="ollama/mistral:7b-q4_K_M", api_base=OLLAMA_HOST)
 
 
@@ -57,6 +64,73 @@ async def extract_opportunity(html: str, url: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to extract opportunity from {url}: {str(e)}")
         # Return a basic structure with error info
+        return {
+            "title": "Extraction Failed",
+            "description": f"Failed to extract data: {str(e)}",
+            "organization": "Unknown",
+            "error": str(e),
+            "source_url": url
+        }
+
+
+async def extract_opportunity_bs(html: str, url: str) -> Dict[str, Any]:
+    """Extract opportunity data using BeautifulSoup (fallback method).
+    
+    Args:
+        html: HTML content to extract from
+        url: Source URL for context
+        
+    Returns:
+        Dictionary containing basic extracted data
+    """
+    try:
+        logger.info(f"Using BeautifulSoup extraction for {url}")
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Extract title - try common heading tags
+        title = None
+        for tag in ['h1', 'h2', 'title']:
+            element = soup.find(tag)
+            if element:
+                title = element.get_text(strip=True)
+                break
+        
+        if not title:
+            title = "Opportunity - Manual Review Required"
+        
+        # Extract description - get first few paragraphs
+        paragraphs = soup.find_all('p', limit=3)
+        description = ' '.join([p.get_text(strip=True) for p in paragraphs])
+        
+        if not description:
+            # Fallback to all text content (limited)
+            text_content = soup.get_text(strip=True, separator=' ')
+            description = text_content[:500] + "..." if len(text_content) > 500 else text_content
+        
+        # Try to find organization name in common patterns
+        organization = "Unknown Organization"
+        for pattern in ['organization', 'company', 'agency', 'foundation']:
+            element = soup.find(text=lambda text: text and pattern.lower() in text.lower())
+            if element:
+                # Get the parent element's text
+                parent = element.parent
+                if parent:
+                    org_text = parent.get_text(strip=True)
+                    if len(org_text) < 100:  # Reasonable org name length
+                        organization = org_text
+                        break
+        
+        return {
+            "title": title,
+            "description": description,
+            "organization": organization,
+            "source_url": url,
+            "extraction_method": "beautifulsoup",
+            "requires_manual_review": True
+        }
+        
+    except Exception as e:
+        logger.error(f"BeautifulSoup extraction failed for {url}: {str(e)}")
         return {
             "title": "Extraction Failed",
             "description": f"Failed to extract data: {str(e)}",
@@ -190,7 +264,6 @@ async def extract_text_content(html: str) -> str:
             return resp.content
         else:
             # Fallback to basic HTML stripping
-            from bs4 import BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
             return soup.get_text(strip=True, separator=' ')
             
@@ -199,7 +272,6 @@ async def extract_text_content(html: str) -> str:
         
         # Fallback to BeautifulSoup
         try:
-            from bs4 import BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
             return soup.get_text(strip=True, separator=' ')
         except Exception as bs_error:

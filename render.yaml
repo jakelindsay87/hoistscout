@@ -1,4 +1,18 @@
 services:
+  # Ollama Service - Core LLM for extraction
+  - type: web
+    name: ollama
+    runtime: docker
+    repo: https://github.com/jakelindsay87/hoistscraper
+    dockerfilePath: ./ollama/Dockerfile
+    disk:
+      name: ollama-data
+      mountPath: /root/.ollama
+      sizeGB: 10
+    autoDeploy: false
+    plan: standard  # Need more memory for Ollama
+    healthCheckPath: /api/tags
+    
   # Backend API Service
   - type: web
     name: hoistscraper-api
@@ -12,6 +26,8 @@ services:
         sync: false # Set this in Render dashboard
       - key: SMTP_SERVER
         value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
       - key: SMTP_USER
         sync: false # Set this in Render dashboard
       - key: SMTP_PASSWORD
@@ -19,7 +35,11 @@ services:
       - key: NOTIFY_EMAIL
         sync: false # Set this in Render dashboard
       - key: ANALYZE_TERMS
-        value: "false"
+        value: "true"
+      - key: OLLAMA_HOST
+        value: http://ollama:11434
+      - key: RENDER
+        value: "true"
     healthCheckPath: /health
     
   # Frontend Service
@@ -33,10 +53,43 @@ services:
         value: https://hoistscraper-api.onrender.com
       - key: NODE_ENV
         value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+    
+  # Daily Crawl Cron Job
+  - type: cron
+    name: daily-crawl
+    runtime: docker
+    repo: https://github.com/jakelindsay87/hoistscraper
+    dockerfilePath: ./backend/Dockerfile
+    dockerCommand: python scripts/run_crawl.py --config sites.yml
+    schedule: "0 2 * * *"  # Run at 2 AM daily
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Set this in Render dashboard
+      - key: OLLAMA_HOST
+        value: http://ollama:11434
+      - key: CRAWL_CONCURRENCY
+        value: "8"
+      - key: ANALYZE_TERMS
+        value: "true"
+      - key: SMTP_SERVER
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false # Set this in Render dashboard
+      - key: SMTP_PASSWORD
+        sync: false # Set this in Render dashboard
+      - key: NOTIFY_EMAIL
+        sync: false # Set this in Render dashboard
+      - key: RENDER
+        value: "true"
 
 # Databases
 databases:
   - name: hoistscraper-db
     databaseName: hoistscraper
     user: hoistscraper_user
-    plan: free 
+    plan: free
+    postgresMajorVersion: 16 
