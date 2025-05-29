@@ -5,97 +5,89 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(dateString: string): string {
-  try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  } catch {
-    return 'Invalid date'
-  }
-}
-
-export function formatDateTime(dateString: string): string {
-  try {
-    const date = new Date(dateString)
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  } catch {
-    return 'Invalid date'
-  }
-}
-
-export function truncateText(text: string, maxLength: number = 100): string {
-  if (text.length <= maxLength) {
-    return text
-  }
-  return text.slice(0, maxLength).trim() + '...'
-}
-
 export function isValidUrl(string: string): boolean {
   try {
-    new URL(string)
-    return true
-  } catch {
-    return false
+    const url = new URL(string);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch (_) {
+    return false;
   }
-}
-
-export function parseUrls(text: string): string[] {
-  return text
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-    .filter(isValidUrl)
 }
 
 export function extractDomain(url: string): string {
   try {
-    const parsedUrl = new URL(url)
-    return parsedUrl.hostname
-  } catch {
-    return url
+    return new URL(url).hostname;
+  } catch (_) {
+    return url;
   }
+}
+
+export function formatDate(date: string | Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(date));
+}
+
+export function formatDateTime(date: string | Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(date));
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
+}
+
+export function parseUrls(input: string): string[] {
+  const lines = input.split('\n').map(line => line.trim()).filter(Boolean);
+  const urls: string[] = [];
+  
+  for (const line of lines) {
+    // Check if it's a comma-separated list
+    if (line.includes(',')) {
+      const commaSeparated = line.split(',').map(url => url.trim()).filter(Boolean);
+      urls.push(...commaSeparated);
+    } else {
+      urls.push(line);
+    }
+  }
+  
+  return urls.filter(isValidUrl);
 }
 
 export function getStatusColor(status: string): string {
   switch (status) {
     case 'active':
-      return 'text-green-600 bg-green-100'
-    case 'inactive':
-      return 'text-gray-600 bg-gray-100'
-    case 'error':
-      return 'text-red-600 bg-red-100'
+      return 'text-green-600 bg-green-50';
     case 'captcha_blocked':
-      return 'text-yellow-600 bg-yellow-100'
+      return 'text-yellow-600 bg-yellow-50';
     case 'legal_blocked':
-      return 'text-orange-600 bg-orange-100'
+      return 'text-red-600 bg-red-50';
+    case 'disabled':
+      return 'text-gray-600 bg-gray-50';
     default:
-      return 'text-gray-600 bg-gray-100'
+      return 'text-gray-600 bg-gray-50';
   }
 }
 
 export function getStatusLabel(status: string): string {
   switch (status) {
     case 'active':
-      return 'Active'
-    case 'inactive':
-      return 'Inactive'
-    case 'error':
-      return 'Error'
+      return 'Active';
     case 'captcha_blocked':
-      return 'Captcha Blocked'
+      return 'CAPTCHA Blocked';
     case 'legal_blocked':
-      return 'Legal Blocked'
+      return 'Legal Blocked';
+    case 'disabled':
+      return 'Disabled';
     default:
-      return 'Unknown'
+      return 'Unknown';
   }
-}
+} 
