@@ -50,7 +50,13 @@ services:
     name: hoistscraper-fe
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
+    buildContext: .
     dockerfilePath: ./frontend/Dockerfile
+    buildFilter: # Only rebuild if frontend files change
+      paths:
+      - frontend/**
+      - package.json # Root package.json if it affects frontend
+      - package-lock.json
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://hoistscraper-api.onrender.com
