@@ -18,7 +18,7 @@ services:
     
   # Backend API Service
   - type: web
-    name: hoistscraper-api
+    name: hoistscraper
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
     dockerfilePath: ./backend/Dockerfile
@@ -59,7 +59,7 @@ services:
       - package-lock.json
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://hoistscraper-api.onrender.com
+        value: https://hoistscraper.onrender.com
       - key: NODE_ENV
         value: production
       - key: NEXT_TELEMETRY_DISABLED

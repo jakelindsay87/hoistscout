@@ -1,0 +1,1 @@
+export const testMessage = "Path resolution works!"; 

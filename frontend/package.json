@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "echo 'Listing src directory:' && find src -name '*.ts' -o -name '*.tsx' | head -20 && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest"

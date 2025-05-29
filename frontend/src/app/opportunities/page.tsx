@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { Opportunity } from '@/types'
-import { formatDate, truncateText } from '@/lib/utils'
+import { formatDate, truncateText } from '../../lib/utils'
 
 // Mock data for development
 const mockOpportunities: Opportunity[] = [
