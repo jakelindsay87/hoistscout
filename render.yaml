@@ -11,6 +11,9 @@ services:
       sizeGB: 10
     autoDeploy: false
     plan: standard  # Need more memory for Ollama
+    envVars:
+      - key: OLLAMA_MODELS
+        value: mistral:7b-q4_K_M
     healthCheckPath: /api/tags
     
   # Backend API Service
