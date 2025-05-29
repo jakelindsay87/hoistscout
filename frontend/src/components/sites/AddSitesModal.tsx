@@ -265,4 +265,7 @@ export function AddSitesModal({ isOpen, onClose, onAdd }: AddSitesModalProps) {
       </div>
     </div>
   )
-} 
+}
+
+// Set it as the default export
+export default AddSitesModal 

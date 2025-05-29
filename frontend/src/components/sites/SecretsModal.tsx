@@ -246,4 +246,6 @@ export function SecretsModal({ isOpen, onClose }: SecretsModalProps) {
       </div>
     </div>
   )
-} 
+}
+
+export default SecretsModal 

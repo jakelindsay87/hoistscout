@@ -114,4 +114,6 @@ export function SitesDataGrid({ sites, onDelete, onUpdateStatus }: SitesDataGrid
       )}
     </div>
   )
-} 
+}
+
+export default SitesDataGrid 
