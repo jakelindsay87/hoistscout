@@ -21,7 +21,7 @@ ENV NEXT_TELEMETRY_DISABLED 1
 
 # The Next.js app is in a subdirectory, so we need to build it from there.
 # The --cwd flag is not available in all npm versions, so we will change directory.
-RUN cd frontend && npm run build
+RUN npm run build
 
 # 3. Production image, copy all the files and run next
 FROM base AS runner

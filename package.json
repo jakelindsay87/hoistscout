@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev": "next dev frontend",
+    "build": "next build frontend",
+    "start": "next start frontend",
+    "lint": "next lint frontend",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
