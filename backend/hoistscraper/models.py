@@ -1,6 +1,6 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 class SiteBase(SQLModel):
     url: str = Field(index=True)
@@ -10,8 +10,8 @@ class SiteBase(SQLModel):
 
 class Site(SiteBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 class SiteCreate(SiteBase):
     pass
