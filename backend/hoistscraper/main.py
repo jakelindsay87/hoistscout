@@ -5,6 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from typing import List
 from . import models, db
+import logging
+import os
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="HoistScraper API",
@@ -27,7 +33,25 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
+    logger.info("Application startup...")
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        logger.error("DATABASE_URL environment variable not set!")
+        raise ValueError("DATABASE_URL environment variable not set!")
+    
+    logger.info(f"DATABASE_URL: {database_url}")
+    
+    # Mask password for logging
+    from urllib.parse import urlparse, urlunparse
+    parsed_url = urlparse(database_url)
+    if parsed_url.password:
+        safe_url = parsed_url._replace(netloc=f"{parsed_url.username}:***@{parsed_url.hostname}")
+        logger.info(f"Connecting to database at: {urlunparse(safe_url)}")
+    else:
+        logger.info(f"Connecting to database at: {database_url}")
+        
     db.create_db_and_tables()
+    logger.info("Database tables created.")
 
 @app.get("/")
 async def root():
