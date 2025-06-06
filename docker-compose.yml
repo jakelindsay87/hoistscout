@@ -33,7 +33,6 @@ services:
     environment:
       OLLAMA_HOST: http://ollama:11434
       CRAWL_CONCURRENCY: "8"
-      DATABASE_URL: postgresql://hoistscraper_user:1y8SspK76JMiNAyFtwePhThAXKj92fW@dpg-d8pprqtefn73t4nq41g-a/hoistscraper
     depends_on:
       db:
         condition: service_healthy

@@ -22,11 +22,11 @@ services:
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
     dockerfilePath: ./backend/Dockerfile
+    databases:
+      - name: hoistscraper-db
     envVars:
       - key: CRAWL_CONCURRENCY
         value: "8"
-      - key: DATABASE_URL
-        sync: false # Set this in Render dashboard
       - key: SMTP_SERVER
         value: smtp.gmail.com
       - key: SMTP_PORT
@@ -73,9 +73,9 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerCommand: python scripts/run_crawl.py --config sites.yml
     schedule: "0 2 * * *"  # Run at 2 AM daily
+    databases:
+      - name: hoistscraper-db
     envVars:
-      - key: DATABASE_URL
-        sync: false # Set this in Render dashboard
       - key: OLLAMA_HOST
         value: http://ollama:11434
       - key: CRAWL_CONCURRENCY
