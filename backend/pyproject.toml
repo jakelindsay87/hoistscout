@@ -17,6 +17,7 @@ tenacity = "^8.2"
 firecrawl-py = "^0.0.6"
 ollama = "^0.1.7"
 sqlmodel = "^0.0.16"
+psycopg2-binary = "^2.9.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2"
