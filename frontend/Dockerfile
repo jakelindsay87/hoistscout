@@ -33,19 +33,17 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy production dependencies
+# Copy production dependencies and build artifacts
 COPY --from=builder /app/node_modules ./node_modules
-# Copy built frontend application
-COPY --from=builder /app/frontend/.next ./frontend/.next
 COPY --from=builder /app/package.json ./package.json
-
-# The server will run from the 'frontend' directory
-WORKDIR /app/frontend
+COPY --from=builder /app/frontend/.next ./frontend/.next
+COPY --from=builder /app/frontend/public ./frontend/public
 
 USER nextjs
 EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# Start the Next.js server
-CMD ["node", "server.js"]
+# The working directory is /app, which is correct for running the start script.
+# Start the Next.js server using the script from package.json
+CMD ["npm", "run", "start"]
