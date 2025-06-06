@@ -22,13 +22,10 @@ services:
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
     dockerfilePath: ./backend/Dockerfile
-    databases:
-      - name: hoistscraper-db
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: hoistscraper-db
-          property: connectionString
       - key: CRAWL_CONCURRENCY
         value: "8"
       - key: SMTP_SERVER
@@ -77,8 +74,6 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerCommand: python scripts/run_crawl.py --config sites.yml
     schedule: "0 2 * * *"  # Run at 2 AM daily
-    databases:
-      - name: hoistscraper-db
     envVars:
       - key: DATABASE_URL
         fromDatabase:
