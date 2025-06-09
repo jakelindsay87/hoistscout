@@ -9,6 +9,7 @@ from datetime import datetime, UTC
 import logging
 import os
 from contextlib import asynccontextmanager
+from sqlalchemy.exc import IntegrityError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -123,6 +124,114 @@ def delete_site(site_id: int, session: Session = Depends(db.get_session)):
     session.delete(site)
     session.commit()
     return {"ok": True}
+
+# Website API endpoints (new models)
+@app.get("/api/websites", response_model=List[models.WebsiteRead])
+def read_websites(session: Session = Depends(db.get_session)):
+    """Get all websites."""
+    websites = session.exec(select(models.Website)).all()
+    return websites
+
+@app.get("/api/websites/{website_id}", response_model=models.WebsiteRead)
+def read_website(website_id: int, session: Session = Depends(db.get_session)):
+    """Get a specific website by ID."""
+    website = session.get(models.Website, website_id)
+    if not website:
+        raise HTTPException(status_code=404, detail="Website not found")
+    return website
+
+@app.post("/api/websites", response_model=models.WebsiteRead)
+def create_website(website: models.WebsiteCreate, session: Session = Depends(db.get_session)):
+    """Create a new website. Returns HTTP 409 if URL already exists."""
+    try:
+        db_website = models.Website.model_validate(website)
+        session.add(db_website)
+        session.commit()
+        session.refresh(db_website)
+        return db_website
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=f"Website with URL '{website.url}' already exists")
+
+@app.put("/api/websites/{website_id}", response_model=models.WebsiteRead)
+def update_website(website_id: int, website: models.WebsiteCreate, session: Session = Depends(db.get_session)):
+    """Update an existing website."""
+    db_website = session.get(models.Website, website_id)
+    if not db_website:
+        raise HTTPException(status_code=404, detail="Website not found")
+    
+    website_data = website.model_dump(exclude_unset=True)
+    for key, value in website_data.items():
+        setattr(db_website, key, value)
+    
+    db_website.updated_at = datetime.now(UTC)
+
+    try:
+        session.add(db_website)
+        session.commit()
+        session.refresh(db_website)
+        return db_website
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail=f"Website with URL '{website.url}' already exists")
+
+@app.delete("/api/websites/{website_id}")
+def delete_website(website_id: int, session: Session = Depends(db.get_session)):
+    """Delete a website."""
+    website = session.get(models.Website, website_id)
+    if not website:
+        raise HTTPException(status_code=404, detail="Website not found")
+    
+    session.delete(website)
+    session.commit()
+    return {"ok": True}
+
+# ScrapeJob API endpoints
+@app.get("/api/scrape-jobs", response_model=List[models.ScrapeJobRead])
+def read_scrape_jobs(session: Session = Depends(db.get_session)):
+    """Get all scrape jobs."""
+    jobs = session.exec(select(models.ScrapeJob)).all()
+    return jobs
+
+@app.get("/api/scrape-jobs/{job_id}", response_model=models.ScrapeJobRead)
+def read_scrape_job(job_id: int, session: Session = Depends(db.get_session)):
+    """Get a specific scrape job by ID."""
+    job = session.get(models.ScrapeJob, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Scrape job not found")
+    return job
+
+@app.post("/api/scrape-jobs", response_model=models.ScrapeJobRead)
+def create_scrape_job(job: models.ScrapeJobCreate, session: Session = Depends(db.get_session)):
+    """Create a new scrape job."""
+    # Verify website exists
+    website = session.get(models.Website, job.website_id)
+    if not website:
+        raise HTTPException(status_code=404, detail="Website not found")
+    
+    db_job = models.ScrapeJob.model_validate(job)
+    session.add(db_job)
+    session.commit()
+    session.refresh(db_job)
+    return db_job
+
+@app.put("/api/scrape-jobs/{job_id}", response_model=models.ScrapeJobRead)
+def update_scrape_job(job_id: int, job: models.ScrapeJobCreate, session: Session = Depends(db.get_session)):
+    """Update an existing scrape job."""
+    db_job = session.get(models.ScrapeJob, job_id)
+    if not db_job:
+        raise HTTPException(status_code=404, detail="Scrape job not found")
+    
+    job_data = job.model_dump(exclude_unset=True)
+    for key, value in job_data.items():
+        setattr(db_job, key, value)
+    
+    db_job.updated_at = datetime.now(UTC)
+
+    session.add(db_job)
+    session.commit()
+    session.refresh(db_job)
+    return db_job
 
 @app.get("/api/opportunities")
 async def get_opportunities():
