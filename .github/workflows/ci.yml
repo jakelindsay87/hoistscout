@@ -45,11 +45,13 @@ jobs:
     services:
       ollama:
         image: ollama/ollama:latest
+        env:
+          OLLAMA_GPU: "false"
         ports:
           - "11434:11434"
         options: >-
-          --health-cmd="curl -f http://localhost:11434 || exit 1"
-          --health-interval=30s --health-retries=5
+          --health-cmd "curl -s http://localhost:11434 || exit 1"
+          --health-interval 10s --health-timeout 30s --health-retries 3
 
     steps:
       - uses: actions/checkout@v4
@@ -57,6 +59,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      
+      - name: Regenerate poetry.lock
+        run: |
+          cd backend
+          pip install poetry
+          poetry lock --no-update
       
       - name: Install Poetry and dependencies
         run: |
