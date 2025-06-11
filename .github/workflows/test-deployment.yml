@@ -1,0 +1,74 @@
+name: Test Deployment
+
+on: [push, pull_request]
+
+jobs:
+  test-docker-build:
+    name: Test Docker Builds
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Test Backend Docker Build
+        run: |
+          docker build -f backend/Dockerfile . -t backend-test
+          
+      - name: Test Frontend Docker Build
+        run: |
+          docker build -f frontend/Dockerfile . -t frontend-test
+          
+      - name: Check Backend Image Size
+        run: |
+          docker images backend-test --format "Backend size: {{.Size}}"
+          
+      - name: Check Frontend Image Size
+        run: |
+          docker images frontend-test --format "Frontend size: {{.Size}}"
+
+  test-basic-functionality:
+    name: Basic Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Test Backend Imports
+        run: |
+          cd backend
+          pip install fastapi sqlmodel pydantic
+          python -c "import hoistscraper.main; print('Backend imports OK')"
+          
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Test Frontend Build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+          
+      - name: Check Frontend Build Output
+        run: |
+          ls -la frontend/.next
+          
+  test-memory-constraints:
+    name: Test Memory Constraints
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Test Frontend Build with Memory Limit
+        run: |
+          cd frontend
+          npm ci
+          NODE_OPTIONS="--max-old-space-size=384" npm run build

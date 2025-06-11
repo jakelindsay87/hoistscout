@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Test deployment with memory limits similar to Render
+  frontend-test:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend-test:8000
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3001:3000"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backend-test:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db-test:5432/hoistscraper_test
+      OLLAMA_HOST: http://ollama-test:11434
+      CRAWL_CONCURRENCY: "4"
+    ports:
+      - "8001:8000"
+    depends_on:
+      db-test:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db-test:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hoistscraper_test
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ollama-test:
+    image: ollama/ollama:latest
+    ports:
+      - "11435:11434"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
