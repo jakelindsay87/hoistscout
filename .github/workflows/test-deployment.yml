@@ -43,7 +43,7 @@ jobs:
       - name: Test Backend Imports
         run: |
           cd backend
-          pip install fastapi sqlmodel pydantic
+          pip install fastapi sqlmodel pydantic psycopg2-binary
           python -c "import hoistscraper.main; print('Backend imports OK')"
           
       - uses: actions/setup-node@v4
@@ -51,6 +51,8 @@ jobs:
           node-version: '20'
           
       - name: Test Frontend Build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=1024"
         run: |
           cd frontend
           npm ci
@@ -68,7 +70,9 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Test Frontend Build with Memory Limit
+        env:
+          NODE_OPTIONS: "--max-old-space-size=384"
         run: |
           cd frontend
           npm ci
-          NODE_OPTIONS="--max-old-space-size=384" npm run build
+          npm run build
