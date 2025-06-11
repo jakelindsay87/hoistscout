@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 
 from .base import BaseSiteCrawler, AuthFailure, CaptchaChallenge
-from .config import SiteConfig, AuthConfig
+from .config import SiteConfig
 
 
 class ConfigurableSiteCrawler(BaseSiteCrawler):
