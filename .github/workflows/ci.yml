@@ -31,7 +31,6 @@ jobs:
         run: |
           pip install poetry
           cd backend
-          poetry lock --no-update
           poetry install --with dev
       
       - name: Run database tests
@@ -55,7 +54,6 @@ jobs:
         run: |
           pip install poetry
           cd backend
-          poetry lock --no-update
           poetry install --with dev
       
       - name: Install Playwright
@@ -78,6 +76,8 @@ jobs:
           node-version: '20'
       
       - name: Install and test frontend
+        env:
+          NODE_OPTIONS: "--max-old-space-size=1024"
         run: |
           cd frontend
           npm ci

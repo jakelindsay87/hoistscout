@@ -5,13 +5,16 @@
   "scripts": {
     "dev": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
-    "start": "cd frontend && npm run start",
+    "start": "npm run --workspace=frontend start",
     "lint": "cd frontend && npm run lint",
     "test": "cd frontend && npm run test",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "tsc": "cd frontend && npm run type-check"
   },
+  "workspaces": [
+    "frontend"
+  ],
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-label": "^2.0.2",

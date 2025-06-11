@@ -1,5 +1,6 @@
 'use client'
 
+import React, { useCallback } from 'react'
 import { Site } from '@/types'
 import { getStatusColor, getStatusLabel, formatDateTime } from '@/lib/utils'
 
@@ -9,10 +10,21 @@ interface SitesDataGridProps {
   onUpdateStatus: (siteId: string, status: Site['status']) => void
 }
 
-export function SitesDataGrid({ sites, onDelete, onUpdateStatus }: SitesDataGridProps) {
-  const handleStatusChange = (siteId: string, newStatus: string) => {
+export const SitesDataGrid = React.memo<SitesDataGridProps>(({ sites, onDelete, onUpdateStatus }) => {
+  const handleStatusChange = useCallback((siteId: string, newStatus: string) => {
     onUpdateStatus(siteId, newStatus as Site['status'])
-  }
+  }, [onUpdateStatus])
+
+  const handleEdit = useCallback((siteId: string) => {
+    // TODO: Implement edit functionality
+    console.log('Edit site:', siteId)
+  }, [])
+
+  const handleDelete = useCallback((site: Site) => {
+    if (confirm(`Are you sure you want to delete "${site.name}"?`)) {
+      onDelete(site.id)
+    }
+  }, [onDelete])
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -77,20 +89,13 @@ export function SitesDataGrid({ sites, onDelete, onUpdateStatus }: SitesDataGrid
                 <td className="px-4 py-3">
                   <div className="flex justify-center space-x-2">
                     <button
-                      onClick={() => {
-                        // TODO: Implement edit functionality
-                        console.log('Edit site:', site.id)
-                      }}
+                      onClick={() => handleEdit(site.id)}
                       className="text-sm text-blue-600 hover:text-blue-800"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Are you sure you want to delete "${site.name}"?`)) {
-                          onDelete(site.id)
-                        }
-                      }}
+                      onClick={() => handleDelete(site)}
                       className="text-sm text-red-600 hover:text-red-800"
                     >
                       Delete
@@ -114,6 +119,8 @@ export function SitesDataGrid({ sites, onDelete, onUpdateStatus }: SitesDataGrid
       )}
     </div>
   )
-}
+})
+
+SitesDataGrid.displayName = 'SitesDataGrid'
 
 export default SitesDataGrid 
