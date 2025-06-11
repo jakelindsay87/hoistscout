@@ -46,6 +46,7 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# The working directory is /app, which is correct for running the start script.
+# The working directory is /app/frontend for the workspace setup
+WORKDIR /app/frontend
 # Start the Next.js server using the script from package.json
-CMD ["npm", "run", "start"]
+CMD ["npm", "start"]
