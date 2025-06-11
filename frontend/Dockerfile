@@ -21,6 +21,8 @@ ENV NEXT_TELEMETRY_DISABLED 1
 
 # The Next.js app is in a subdirectory, so we need to build it from there.
 # The --cwd flag is not available in all npm versions, so we will change directory.
+# Set memory limit for Node.js to prevent OOM errors
+ENV NODE_OPTIONS="--max-old-space-size=384"
 RUN npm run build
 
 # 3. Production image, copy all the files and run next
