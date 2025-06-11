@@ -31,6 +31,7 @@ jobs:
         run: |
           pip install poetry
           cd backend
+          poetry lock --no-update
           poetry install --with dev
       
       - name: Run database tests
@@ -42,14 +43,6 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    services:
-      ollama:
-        image: ollama/ollama:latest
-        ports:
-          - "11434:11434"
-        options: >-
-          --health-cmd="curl -f http://localhost:11434 || exit 1"
-          --health-interval=30s --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +55,7 @@ jobs:
         run: |
           pip install poetry
           cd backend
+          poetry lock --no-update
           poetry install --with dev
       
       - name: Install Playwright
@@ -88,4 +82,5 @@ jobs:
           cd frontend
           npm ci
           npm run lint
-          npm test 
+          npm run type-check
+          npm run test 
