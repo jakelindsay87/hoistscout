@@ -21,9 +21,7 @@ services:
     name: hoistscraper
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -54,9 +52,7 @@ services:
     name: hoistscraper-fe
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    dockerfilePath: ./frontend/Dockerfile
     buildFilter:
       paths:
       - "frontend/**"
@@ -73,9 +69,7 @@ services:
     name: daily-crawl
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    dockerfilePath: ./backend/Dockerfile
     dockerCommand: python scripts/run_crawl.py --config sites.yml
     schedule: "0 2 * * *"  # Run at 2 AM daily
     envVars:

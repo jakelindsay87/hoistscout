@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y \
 # Copy pyproject.toml and poetry.lock
 COPY backend/pyproject.toml backend/poetry.lock* ./
 
-# Install dependencies, including dev for testing
-RUN pip install --no-cache-dir poetry && \
+# Install Poetry with specific version for consistency
+RUN pip install --no-cache-dir poetry==1.7.1 && \
     poetry config virtualenvs.create false && \
-    poetry install --no-root
+    poetry install --no-root --no-interaction --no-ansi
 
 # Install Playwright and browsers
 RUN playwright install --with-deps chromium

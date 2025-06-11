@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build", 
+    "build": "cd frontend && npm run build",
     "start": "cd frontend && npm run start",
     "lint": "cd frontend && npm run lint",
     "test": "cd frontend && npm run test",
@@ -22,7 +22,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.378.0",
-    "next": "14.2.0",
+    "next": "^14.2.29",
     "papaparse": "^5.4.1",
     "react": "18.3.0",
     "react-dom": "18.3.0",
@@ -41,10 +41,10 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.0.0",
     "eslint": "^8.57.0",
-    "eslint-config-next": "14.2.0",
+    "eslint-config-next": "^15.3.3",
     "jsdom": "^26.1.0",
     "postcss": "^8.4.38",
     "typescript": "^5.4.5",
-    "vitest": "^0.34.0"
+    "vitest": "^3.2.3"
   }
 }
