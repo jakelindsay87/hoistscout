@@ -7,8 +7,8 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.110"
-playwright = "^1.44"
+fastapi = "^0.115.12"
+playwright = "^1.52.0"
 playwright-stealth = "^1.0"
 uvicorn = {extras = ["standard"], version = "^0.29"}
 beautifulsoup4 = "^4.12"
