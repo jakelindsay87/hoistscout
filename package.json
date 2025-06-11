@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev frontend",
-    "build": "next build frontend",
+    "build": "next build frontend", 
     "start": "next start frontend",
     "lint": "next lint frontend",
+    "test": "cd frontend && vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "tsc": "cd frontend && tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",

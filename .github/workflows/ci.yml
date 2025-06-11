@@ -60,12 +60,6 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Regenerate poetry.lock
-        run: |
-          cd backend
-          pip install poetry
-          poetry lock --no-update
-      
       - name: Install Poetry and dependencies
         run: |
           pip install poetry
@@ -93,7 +87,7 @@ jobs:
       
       - name: Install and test frontend
         run: |
-          cd frontend
           npm ci
           npm run lint
-          npm test 
+          npm run tsc
+          npm run test 
