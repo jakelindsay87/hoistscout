@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "FastAPI backend with Playwright crawler and extractor"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
+packages = [{include = "hoistscraper"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
