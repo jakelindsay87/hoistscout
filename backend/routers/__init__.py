@@ -1,1 +1,1 @@
-"""FastAPI routers package."""
+# Router package
