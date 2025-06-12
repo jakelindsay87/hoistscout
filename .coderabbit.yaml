@@ -1,0 +1,75 @@
+# CodeRabbit Configuration
+# Documentation: https://docs.coderabbit.ai/guides/configure-coderabbit
+
+# Review Settings
+reviews:
+  # Enable high-level summary of changes
+  high_level_summary: true
+  
+  # Enable poem generation (fun touch for team morale)
+  poem: false
+  
+  # Enable review status badges
+  review_status: true
+  
+  # Collapse generated files in PRs
+  collapse_walkthrough: false
+  
+  # Request changes when critical issues found
+  request_changes_workflow: true
+  
+  # Tools to run on PRs
+  tools:
+    # Enable GitHub's CodeQL
+    codeql: true
+    
+    # Programming language specific tools
+    ruff: true  # Python linter
+    mypy: true  # Python type checker
+    eslint: true  # JavaScript/TypeScript linter
+    
+    # Security scanning
+    semgrep: true
+    
+    # Dependency scanning  
+    dependabot: true
+
+# Auto-reply settings
+auto_reply:
+  # Enable auto-reply to comments
+  enabled: true
+
+# Language-specific settings
+language_specific:
+  python:
+    # Enforce type hints
+    type_checking: strict
+    
+  typescript:
+    # Enforce strict mode
+    strict_mode: true
+
+# Path filters - files/folders to ignore
+path_filters:
+  - "poetry.lock"
+  - "package-lock.json" 
+  - "*.min.js"
+  - "*.min.css"
+  - "dist/"
+  - "build/"
+  - "__pycache__/"
+  - ".pytest_cache/"
+  - "venv/"
+  - "node_modules/"
+
+# Custom review instructions
+instructions: |
+  - Focus on security vulnerabilities, especially around web scraping and data handling
+  - Ensure all database queries are properly parameterized
+  - Check for proper error handling and logging
+  - Verify test coverage meets 90% threshold
+  - Validate TypeScript strict mode compliance
+  - Check for proper async/await usage
+  - Ensure API responses follow consistent format
+  - Look for potential memory leaks in Playwright usage
+  - Verify proper cleanup of database connections
