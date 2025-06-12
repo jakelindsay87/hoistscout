@@ -24,12 +24,15 @@ reviews:
     codeql: true
     
     # Programming language specific tools
-    ruff: true  # Python linter
+    ruff:
+      enabled: true  # Python linter
     mypy: true  # Python type checker
-    eslint: true  # JavaScript/TypeScript linter
+    eslint:
+      enabled: true  # JavaScript/TypeScript linter
     
     # Security scanning
-    semgrep: true
+    semgrep:
+      enabled: true
     
     # Dependency scanning  
     dependabot: true
