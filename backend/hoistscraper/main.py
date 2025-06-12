@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 
 async def auto_seed_from_csv(csv_path: str):
     """Auto-seed database from CSV file if database is empty."""
-    from ..cli.import_csv import run
+    # Import here to avoid circular imports
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from cli.import_csv import run
     
     # Check if path exists
     if not Path(csv_path).exists():
@@ -26,11 +30,18 @@ async def auto_seed_from_csv(csv_path: str):
         return
     
     # Check if database is empty
-    with next(db.get_session()) as session:
+    session_gen = db.get_session()
+    session = next(session_gen)
+    try:
         existing_count = session.exec(select(models.Website)).first()
         if existing_count:
             logger.info("Database already has data, skipping auto-seed")
             return
+    finally:
+        try:
+            session_gen.close()
+        except:
+            pass
     
     # Run the import
     logger.info(f"Auto-seeding from CSV: {csv_path}")

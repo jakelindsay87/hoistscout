@@ -76,28 +76,48 @@ def run(path: str, batch_size: int = 1000) -> int:
     return total_imported
 
 
-def process_chunk(df: pd.DataFrame) -> tuple[int, int]:
+def process_chunk(df: pd.DataFrame) -> Tuple[int, int]:
     """Process a chunk of CSV data."""
     imported = 0
     skipped = 0
     
     # Get database session
-    with next(get_session()) as session:
-        # Get existing URLs for deduplication
+    session_gen = get_session()
+    session = next(session_gen)
+    try:
+        # Get URLs from this chunk for batch duplicate check
+        urls_in_chunk = []
+        for _, row in df.iterrows():
+            url = str(row.get('url', '')).strip()
+            if url and validate_url(url):
+                urls_in_chunk.append(url)
+        
+        # Batch check for existing URLs
         existing_urls = set()
-        stmt = select(Website.url)
-        for row in session.exec(stmt):
-            existing_urls.add(row)
+        if urls_in_chunk:
+            existing = session.exec(
+                select(Website.url).where(Website.url.in_(urls_in_chunk))
+            ).all()
+            existing_urls = set(existing)
+        
+        # Prepare batch insert
+        websites_to_create = []
         
         # Process each row
-        for _, row in df.iterrows():
+        for idx, row in df.iterrows():
             url = str(row.get('url', '')).strip()
             name = str(row.get('name', '')).strip()
             description = str(row.get('description', '')).strip() or None
             
             # Validate required fields
             if not url or not name:
-                logger.warning(f"Skipping row with missing url or name: {row}")
+                logger.warning(f"Row {idx + 1}: Missing required url or name")
+                skipped += 1
+                continue
+            
+            # Validate URL format
+            if not validate_url(url):
+                logger.warning(f"Row {idx + 1}: Invalid URL format: {url[:50]}...")
                 skipped += 1
                 continue
             
@@ -107,28 +127,42 @@ def process_chunk(df: pd.DataFrame) -> tuple[int, int]:
                 skipped += 1
                 continue
             
-            # Create website
+            # Sanitize inputs
+            name = sanitize_string(name, 255)
+            if description:
+                description = sanitize_string(description, 1000)
+            
+            # Create website object
             try:
                 website = Website(
                     url=url,
                     name=name,
                     description=description
                 )
-                session.add(website)
+                websites_to_create.append(website)
                 existing_urls.add(url)  # Track in current batch
-                imported += 1
                 
             except Exception as e:
-                logger.error(f"Error creating website {url}: {e}")
+                logger.error(f"Error creating website object for {url}: {e}")
                 skipped += 1
         
-        # Commit the batch
+        # Bulk insert
+        if websites_to_create:
+            try:
+                session.bulk_save_objects(websites_to_create)
+                session.commit()
+                imported = len(websites_to_create)
+            except Exception as e:
+                logger.error(f"Error committing batch: {e}")
+                session.rollback()
+                return 0, len(df)
+    
+    finally:
+        # Properly close the session
         try:
-            session.commit()
-        except Exception as e:
-            logger.error(f"Error committing batch: {e}")
-            session.rollback()
-            return 0, len(df)
+            session_gen.close()
+        except:
+            pass
     
     return imported, skipped
 

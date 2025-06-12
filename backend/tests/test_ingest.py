@@ -177,6 +177,7 @@ class TestCLIImport:
     
     def test_cli_import_success(self, session, mini_csv_path):
         """Test CLI import function."""
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from cli.import_csv import run
         
         imported = run(str(mini_csv_path))
@@ -189,6 +190,7 @@ class TestCLIImport:
     
     def test_cli_import_file_not_found(self):
         """Test CLI import with non-existent file."""
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from cli.import_csv import run
         
         imported = run("/path/to/nonexistent.csv")
@@ -196,6 +198,7 @@ class TestCLIImport:
     
     def test_cli_import_invalid_extension(self, tmpdir):
         """Test CLI import with non-CSV file."""
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from cli.import_csv import run
         
         txt_file = tmpdir.join("test.txt")
