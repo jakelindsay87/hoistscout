@@ -4,16 +4,49 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from typing import List
-from . import models, db, ingest
+from . import models, db
 from datetime import datetime, UTC
 import logging
 import os
 from contextlib import asynccontextmanager
 from sqlalchemy.exc import IntegrityError
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+async def auto_seed_from_csv(csv_path: str):
+    """Auto-seed database from CSV file if database is empty."""
+    # Import here to avoid circular imports
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from cli.import_csv import run
+    
+    # Check if path exists
+    if not Path(csv_path).exists():
+        logger.warning(f"CSV seed file not found: {csv_path}")
+        return
+    
+    # Check if database is empty
+    session_gen = db.get_session()
+    session = next(session_gen)
+    try:
+        existing_count = session.exec(select(models.Website)).first()
+        if existing_count:
+            logger.info("Database already has data, skipping auto-seed")
+            return
+    finally:
+        try:
+            session_gen.close()
+        except:
+            pass
+    
+    # Run the import
+    logger.info(f"Auto-seeding from CSV: {csv_path}")
+    imported = run(csv_path)
+    logger.info(f"Auto-seed complete: imported {imported} websites")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +70,12 @@ async def lifespan(app: FastAPI):
         
     db.create_db_and_tables()
     logger.info("Database tables created.")
+    
+    # Auto-seed from CSV if configured
+    csv_seed_path = os.getenv("CSV_SEED_PATH")
+    if csv_seed_path:
+        await auto_seed_from_csv(csv_seed_path)
+    
     yield
     # on shutdown
     logger.info("Application shutdown.")
@@ -61,6 +100,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Import routers
+from ..routers import ingest
+
+# Include routers
 app.include_router(ingest.router)
 
 @app.get("/")

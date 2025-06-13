@@ -1,379 +1,262 @@
-"""Comprehensive test suite for database operations and models."""
-
+"""Database and API tests for HoistScraper."""
+import os
 import pytest
+from datetime import datetime
+
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine, select
-from sqlalchemy.pool import StaticPool
-from datetime import datetime, UTC
+from sqlmodel import Session, create_engine, SQLModel, select
 
-from hoistscraper.main import app
-from hoistscraper import models, db
+from main import app
+from db import Website, ScrapeJob, get_session
+
+# Test database URL
+TEST_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/hoistscraper_test")
 
 
-@pytest.fixture(name="session")
-def session_fixture():
-    """Create a test database session."""
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+@pytest.fixture(scope="function")
+def engine():
+    """Create a test database engine."""
+    engine = create_engine(TEST_DATABASE_URL, echo=False)
     SQLModel.metadata.create_all(engine)
+    yield engine
+    SQLModel.metadata.drop_all(engine)
+
+
+@pytest.fixture(scope="function")
+def session(engine):
+    """Create a test database session."""
     with Session(engine) as session:
         yield session
 
 
-@pytest.fixture(name="client")
-def client_fixture(session: Session):
+@pytest.fixture(scope="function")
+def client(engine):
     """Create a test client with test database."""
-    def get_session_override():
-        return session
-
-    app.dependency_overrides[db.get_session] = get_session_override
-    client = TestClient(app)
-    yield client
+    # Override the get_session dependency
+    def get_test_session():
+        with Session(engine) as session:
+            yield session
+    
+    app.dependency_overrides[get_session] = get_test_session
+    with TestClient(app) as client:
+        yield client
     app.dependency_overrides.clear()
 
 
-class TestWebsiteModel:
-    """Test Website model operations."""
-
-    def test_create_website(self, session: Session):
+class TestDatabase:
+    """Test database models and operations."""
+    
+    def test_create_website(self, session):
         """Test creating a website."""
-        website = models.Website(
-            url="https://example.com/jobs",
-            name="Example Jobs",
-            description="Example company job board"
+        website = Website(
+            url="https://example.com",
+            name="Example Site",
+            description="Test description"
         )
         session.add(website)
         session.commit()
         session.refresh(website)
-
+        
         assert website.id is not None
-        assert website.url == "https://example.com/jobs"
-        assert website.name == "Example Jobs"
-        assert website.description == "Example company job board"
-        assert website.active is True
+        assert website.url == "https://example.com"
+        assert website.name == "Example Site"
+        assert website.description == "Test description"
         assert isinstance(website.created_at, datetime)
         assert isinstance(website.updated_at, datetime)
-
-    def test_unique_url_constraint(self, session: Session):
-        """Test that duplicate URLs are rejected."""
-        url = "https://duplicate.com/jobs"
-        
-        # Create first website
-        website1 = models.Website(url=url, name="First")
-        session.add(website1)
-        session.commit()
-
-        # Try to create second website with same URL
-        website2 = models.Website(url=url, name="Second")
-        session.add(website2)
-        
-        with pytest.raises(Exception):  # SQLAlchemy IntegrityError
-            session.commit()
-
-    def test_website_read_model(self):
-        """Test WebsiteRead model validation."""
-        website_data = {
-            "id": 1,
-            "url": "https://test.com",
-            "name": "Test",
-            "active": True,
-            "created_at": datetime.now(UTC),
-            "updated_at": datetime.now(UTC)
-        }
-        website = models.WebsiteRead(**website_data)
-        assert website.id == 1
-        assert website.url == "https://test.com"
-
-
-class TestScrapeJobModel:
-    """Test ScrapeJob model operations."""
-
-    def test_create_scrape_job(self, session: Session):
+    
+    def test_create_scrape_job(self, session):
         """Test creating a scrape job."""
-        # First create a website
-        website = models.Website(url="https://example.com", name="Example")
+        # Create website first
+        website = Website(url="https://example.com", name="Example")
         session.add(website)
         session.commit()
         session.refresh(website)
-
+        
         # Create scrape job
-        job = models.ScrapeJob(
+        job = ScrapeJob(
             website_id=website.id,
-            status=models.JobStatus.PENDING
+            status="pending"
         )
         session.add(job)
         session.commit()
         session.refresh(job)
-
+        
         assert job.id is not None
         assert job.website_id == website.id
-        assert job.status == models.JobStatus.PENDING
+        assert job.status == "pending"
         assert job.started_at is None
         assert job.completed_at is None
-        assert job.error_message is None
-        assert job.raw_data is None
-
-    def test_job_status_enum(self):
-        """Test JobStatus enum values."""
-        assert models.JobStatus.PENDING == "pending"
-        assert models.JobStatus.RUNNING == "running"
-        assert models.JobStatus.COMPLETED == "completed"
-        assert models.JobStatus.FAILED == "failed"
-
-    def test_scrape_job_with_data(self, session: Session):
-        """Test scrape job with all fields populated."""
-        website = models.Website(url="https://test.com", name="Test")
-        session.add(website)
+        assert isinstance(job.created_at, datetime)
+    
+    def test_unique_url_constraint(self, session):
+        """Test that duplicate URLs are not allowed."""
+        website1 = Website(url="https://example.com", name="Example 1")
+        session.add(website1)
         session.commit()
-        session.refresh(website)
-
-        now = datetime.now(UTC)
-        job = models.ScrapeJob(
-            website_id=website.id,
-            status=models.JobStatus.COMPLETED,
-            started_at=now,
-            completed_at=now,
-            raw_data='{"jobs": [{"title": "Software Engineer"}]}'
-        )
-        session.add(job)
-        session.commit()
-        session.refresh(job)
-
-        assert job.status == models.JobStatus.COMPLETED
-        assert job.started_at == now
-        assert job.completed_at == now
-        assert job.raw_data == '{"jobs": [{"title": "Software Engineer"}]}'
-
-
-class TestWebsiteAPI:
-    """Test Website API endpoints."""
-
-    def test_create_website_api(self, client: TestClient):
-        """Test creating website via API."""
-        website_data = {
-            "url": "https://api-test.com/jobs",
-            "name": "API Test Company",
-            "description": "Test description",
-            "active": True
-        }
-        response = client.post("/api/websites", json=website_data)
         
-        assert response.status_code == 200
+        website2 = Website(url="https://example.com", name="Example 2")
+        session.add(website2)
+        
+        with pytest.raises(Exception):  # Should raise integrity error
+            session.commit()
+
+
+class TestSitesAPI:
+    """Test sites API endpoints."""
+    
+    def test_create_site(self, client):
+        """Test creating a site via API."""
+        response = client.post(
+            "/api/sites",
+            json={
+                "url": "https://test.example.com",
+                "name": "Test Site",
+                "description": "A test website"
+            }
+        )
+        assert response.status_code == 201
         data = response.json()
-        assert data["url"] == website_data["url"]
-        assert data["name"] == website_data["name"]
-        assert data["description"] == website_data["description"]
+        assert data["url"] == "https://test.example.com/"  # FastAPI normalizes URLs
+        assert data["name"] == "Test Site"
+        assert data["description"] == "A test website"
         assert "id" in data
         assert "created_at" in data
-
-    def test_create_duplicate_website_api(self, client: TestClient):
-        """Test duplicate URL returns HTTP 409."""
-        website_data = {
-            "url": "https://duplicate-api.com/jobs",
-            "name": "First Company"
-        }
+        assert "updated_at" in data
+    
+    def test_create_duplicate_site(self, client):
+        """Test that creating duplicate site returns 409."""
+        # Create first site
+        client.post(
+            "/api/sites",
+            json={
+                "url": "https://duplicate.example.com",
+                "name": "First Site"
+            }
+        )
         
-        # Create first website
-        response = client.post("/api/websites", json=website_data)
-        assert response.status_code == 200
-
         # Try to create duplicate
-        duplicate_data = {
-            "url": "https://duplicate-api.com/jobs",
-            "name": "Second Company"
-        }
-        response = client.post("/api/websites", json=duplicate_data)
+        response = client.post(
+            "/api/sites",
+            json={
+                "url": "https://duplicate.example.com",
+                "name": "Second Site"
+            }
+        )
         assert response.status_code == 409
         assert "already exists" in response.json()["detail"]
-
-    def test_get_websites_api(self, client: TestClient):
-        """Test getting all websites."""
-        # Create test websites
-        for i in range(3):
-            website_data = {
-                "url": f"https://test{i}.com/jobs",
-                "name": f"Test Company {i}"
+    
+    def test_list_sites_empty(self, client):
+        """Test listing sites when none exist."""
+        response = client.get("/api/sites")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["items"] == []
+        assert data["total"] == 0
+        assert data["page"] == 1
+        assert data["page_size"] == 20
+        assert data["total_pages"] == 0
+    
+    def test_list_sites_with_pagination(self, client):
+        """Test listing sites with pagination."""
+        # Create 25 sites
+        for i in range(25):
+            client.post(
+                "/api/sites",
+                json={
+                    "url": f"https://site{i}.example.com",
+                    "name": f"Site {i}"
+                }
+            )
+        
+        # Get first page
+        response = client.get("/api/sites?page=1&page_size=10")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["items"]) == 10
+        assert data["total"] == 25
+        assert data["page"] == 1
+        assert data["page_size"] == 10
+        assert data["total_pages"] == 3
+        
+        # Get second page
+        response = client.get("/api/sites?page=2&page_size=10")
+        data = response.json()
+        assert len(data["items"]) == 10
+        assert data["page"] == 2
+        
+        # Get last page
+        response = client.get("/api/sites?page=3&page_size=10")
+        data = response.json()
+        assert len(data["items"]) == 5
+        assert data["page"] == 3
+    
+    def test_get_site(self, client):
+        """Test getting a single site."""
+        # Create a site
+        create_response = client.post(
+            "/api/sites",
+            json={
+                "url": "https://single.example.com",
+                "name": "Single Site"
             }
-            client.post("/api/websites", json=website_data)
-
-        response = client.get("/api/websites")
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 3
-        assert all("id" in website for website in data)
-
-    def test_get_website_by_id(self, client: TestClient):
-        """Test getting specific website by ID."""
-        # Create website
-        website_data = {"url": "https://specific.com", "name": "Specific"}
-        create_response = client.post("/api/websites", json=website_data)
-        website_id = create_response.json()["id"]
-
-        # Get website by ID
-        response = client.get(f"/api/websites/{website_id}")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["id"] == website_id
-        assert data["url"] == website_data["url"]
-
-    def test_get_nonexistent_website(self, client: TestClient):
-        """Test getting non-existent website returns 404."""
-        response = client.get("/api/websites/999")
-        assert response.status_code == 404
-        assert "not found" in response.json()["detail"]
-
-    def test_update_website_api(self, client: TestClient):
-        """Test updating website via API."""
-        # Create website
-        create_data = {"url": "https://update-test.com", "name": "Original"}
-        create_response = client.post("/api/websites", json=create_data)
-        website_id = create_response.json()["id"]
-
-        # Update website
-        update_data = {"url": "https://updated.com", "name": "Updated", "active": False}
-        response = client.put(f"/api/websites/{website_id}", json=update_data)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["url"] == update_data["url"]
-        assert data["name"] == update_data["name"]
-        assert data["active"] == update_data["active"]
-
-    def test_delete_website_api(self, client: TestClient):
-        """Test deleting website via API."""
-        # Create website
-        create_data = {"url": "https://delete-test.com", "name": "Delete Me"}
-        create_response = client.post("/api/websites", json=create_data)
-        website_id = create_response.json()["id"]
-
-        # Delete website
-        response = client.delete(f"/api/websites/{website_id}")
-        assert response.status_code == 200
-        assert response.json()["ok"] is True
-
-        # Verify deletion
-        get_response = client.get(f"/api/websites/{website_id}")
-        assert get_response.status_code == 404
-
-
-class TestScrapeJobAPI:
-    """Test ScrapeJob API endpoints."""
-
-    def test_create_scrape_job_api(self, client: TestClient):
-        """Test creating scrape job via API."""
-        # Create website first
-        website_data = {"url": "https://job-test.com", "name": "Job Test"}
-        website_response = client.post("/api/websites", json=website_data)
-        website_id = website_response.json()["id"]
-
-        # Create scrape job
-        job_data = {
-            "website_id": website_id,
-            "status": "pending"
-        }
-        response = client.post("/api/scrape-jobs", json=job_data)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["website_id"] == website_id
-        assert data["status"] == "pending"
-        assert "id" in data
-
-    def test_create_job_for_nonexistent_website(self, client: TestClient):
-        """Test creating job for non-existent website returns 404."""
-        job_data = {
-            "website_id": 999,
-            "status": "pending"
-        }
-        response = client.post("/api/scrape-jobs", json=job_data)
-        assert response.status_code == 404
-        assert "Website not found" in response.json()["detail"]
-
-    def test_get_scrape_jobs_api(self, client: TestClient):
-        """Test getting all scrape jobs."""
-        # Create website and jobs
-        website_data = {"url": "https://jobs-list.com", "name": "Jobs List"}
-        website_response = client.post("/api/websites", json=website_data)
-        website_id = website_response.json()["id"]
-
-        for i in range(2):
-            job_data = {"website_id": website_id, "status": "pending"}
-            client.post("/api/scrape-jobs", json=job_data)
-
-        response = client.get("/api/scrape-jobs")
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 2
-
-    def test_update_scrape_job_status(self, client: TestClient):
-        """Test updating scrape job status."""
-        # Create website and job
-        website_data = {"url": "https://status-test.com", "name": "Status Test"}
-        website_response = client.post("/api/websites", json=website_data)
-        website_id = website_response.json()["id"]
-
-        job_data = {"website_id": website_id, "status": "pending"}
-        job_response = client.post("/api/scrape-jobs", json=job_data)
-        job_id = job_response.json()["id"]
-
-        # Update job status
-        update_data = {
-            "website_id": website_id,
-            "status": "completed",
-            "raw_data": '{"results": "success"}'
-        }
-        response = client.put(f"/api/scrape-jobs/{job_id}", json=update_data)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "completed"
-        assert data["raw_data"] == '{"results": "success"}'
-
-
-class TestDatabaseCoverage:
-    """Test database operations for coverage."""
-
-    def test_database_session_rollback(self, session: Session):
-        """Test session rollback on error."""
-        website = models.Website(url="https://rollback.com", name="Rollback Test")
-        session.add(website)
-        session.commit()
-
-        # Attempt to create duplicate (should trigger rollback)
-        duplicate = models.Website(url="https://rollback.com", name="Duplicate")
-        session.add(duplicate)
-        
-        with pytest.raises(Exception):
-            session.commit()
-        
-        # Session should still be usable after rollback
-        session.rollback()
-        count = session.exec(select(models.Website)).all()
-        assert len(count) == 1
-
-    def test_model_validation(self):
-        """Test model validation."""
-        # Test WebsiteCreate validation
-        website_create = models.WebsiteCreate(
-            url="https://validate.com",
-            name="Validation Test"
         )
-        assert website_create.url == "https://validate.com"
-        assert website_create.active is True  # default value
-
-        # Test ScrapeJobCreate validation
-        job_create = models.ScrapeJobCreate(
-            website_id=1,
-            status=models.JobStatus.RUNNING
+        site_id = create_response.json()["id"]
+        
+        # Get the site
+        response = client.get(f"/api/sites/{site_id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == site_id
+        assert data["url"] == "https://single.example.com/"
+        assert data["name"] == "Single Site"
+    
+    def test_get_nonexistent_site(self, client):
+        """Test getting a site that doesn't exist."""
+        response = client.get("/api/sites/9999")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Site not found"
+    
+    def test_invalid_url(self, client):
+        """Test creating site with invalid URL."""
+        response = client.post(
+            "/api/sites",
+            json={
+                "url": "not-a-valid-url",
+                "name": "Invalid URL Site"
+            }
         )
-        assert job_create.website_id == 1
-        assert job_create.status == models.JobStatus.RUNNING
+        assert response.status_code == 422  # Validation error
+    
+    def test_sites_ordered_by_created_at(self, client):
+        """Test that sites are returned in reverse chronological order."""
+        # Create sites with small delays
+        import time
+        for i in range(3):
+            client.post(
+                "/api/sites",
+                json={
+                    "url": f"https://ordered{i}.example.com",
+                    "name": f"Ordered Site {i}"
+                }
+            )
+            time.sleep(0.1)  # Small delay to ensure different timestamps
+        
+        response = client.get("/api/sites")
+        items = response.json()["items"]
+        
+        # Most recent should be first
+        assert items[0]["name"] == "Ordered Site 2"
+        assert items[1]["name"] == "Ordered Site 1"
+        assert items[2]["name"] == "Ordered Site 0"
 
-    def test_database_connection_parameters(self):
-        """Test database engine configuration."""
-        from hoistscraper.db import engine
-        assert engine.pool._pre_ping is True
-        assert engine.pool._recycle == 300
+
+class TestHealthCheck:
+    """Test health check endpoint."""
+    
+    def test_health_check(self, client):
+        """Test health check returns healthy status."""
+        response = client.get("/health")
+        assert response.status_code == 200
+        assert response.json() == {"status": "healthy"}

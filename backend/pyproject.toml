@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "FastAPI backend with Playwright crawler and extractor"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
+packages = [{include = "hoistscraper"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -19,6 +20,8 @@ ollama = "^0.1.7"
 sqlmodel = "^0.0.16"
 psycopg2-binary = "^2.9.9"
 python-multipart = "^0.0.9"
+pandas = "^2.0.0"
+chardet = "^5.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2"
