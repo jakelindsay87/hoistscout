@@ -12,6 +12,18 @@ services:
   #     timeout: 10s
   #     retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   db:
     image: postgres:16
     environment:
@@ -34,13 +46,18 @@ services:
       dockerfile: ./backend/Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/hoistscraper
+      REDIS_URL: redis://redis:6379/0
       OLLAMA_HOST: http://ollama:11434
       CRAWL_CONCURRENCY: "8"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8000:8000"
+    volumes:
+      - scraper_data:/data
 
   frontend:
     build:
@@ -54,7 +71,26 @@ services:
     ports:
       - "3000:3000"
 
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/hoistscraper
+      REDIS_URL: redis://redis:6379/0
+      DATA_DIR: /data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - scraper_data:/data
+    command: ["./worker_entrypoint.sh"]
+
 volumes:
   postgres_data:
+  redis_data:
+  scraper_data:
 # volumes:
 #   ollama-data: 

@@ -84,4 +84,27 @@ jobs:
           npm ci
           npm run lint
           npm run type-check
-          npm run test 
+          npm run test
+
+  test-queue:
+    name: Queue and Worker Tests
+    runs-on: ubuntu-latest
+    needs: [integration-tests, unit-tests]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Poetry and dependencies
+        run: |
+          pip install poetry
+          cd backend
+          poetry install --with dev
+      
+      - name: Run queue and worker tests
+        run: |
+          cd backend
+          poetry run pytest tests/test_queue.py tests/test_worker.py -v --cov=hoistscraper.queue --cov=hoistscraper.worker --cov-report=term-missing 
