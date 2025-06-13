@@ -12,7 +12,6 @@ from sqlmodel import Session
 
 from hoistscraper.db import get_session, engine
 from hoistscraper.models import Website, ScrapeJob, JobStatus
-from hoistscraper.crawler.base import BaseCrawler
 
 logger = logging.getLogger(__name__)
 

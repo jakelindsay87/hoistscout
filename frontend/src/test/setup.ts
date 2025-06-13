@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import { vi, beforeAll, afterEach, afterAll } from 'vitest'
+import { server } from './mocks/server'
 
 // Mock window.location for tests
 Object.defineProperty(window, 'location', {
@@ -22,4 +23,13 @@ global.console = {
   log: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
-} 
+}
+
+// Start server before all tests
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+
+// Reset handlers after each test
+afterEach(() => server.resetHandlers())
+
+// Clean up after all tests
+afterAll(() => server.close()) 
