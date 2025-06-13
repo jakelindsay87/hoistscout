@@ -3,6 +3,9 @@ import os
 import sys
 import pytest
 from pathlib import Path
+
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
 from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine, SQLModel, select
 import pandas as pd

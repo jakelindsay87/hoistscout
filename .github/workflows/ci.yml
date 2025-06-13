@@ -2,8 +2,8 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  test-db:
-    name: Database Tests
+  integration-tests:
+    name: Integration Tests (with Database)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -33,14 +33,15 @@ jobs:
           cd backend
           poetry install --with dev
       
-      - name: Run database tests
+      - name: Run integration tests (with database)
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hoistscraper_test
         run: |
           cd backend
-          poetry run pytest tests/test_db.py -v --cov=hoistscraper --cov-report=term-missing
+          poetry run pytest -m integration -v --cov=hoistscraper --cov-report=term-missing
 
-  test:
+  unit-tests:
+    name: Unit Tests and Linting
     runs-on: ubuntu-latest
 
     steps:
@@ -66,10 +67,10 @@ jobs:
           cd backend
           poetry run ruff check
       
-      - name: Run Python tests
+      - name: Run Python unit tests
         run: |
           cd backend
-          poetry run pytest -q
+          poetry run pytest -m "not integration" -v
       
       - uses: actions/setup-node@v4
         with:

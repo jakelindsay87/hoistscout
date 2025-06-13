@@ -2,6 +2,9 @@
 import os
 import pytest
 from datetime import datetime
+
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
 from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine, SQLModel, select
 

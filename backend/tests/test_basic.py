@@ -1,4 +1,8 @@
 """Basic tests to ensure the application can start"""
+import pytest
+
+# Mark all tests in this module as unit tests
+pytestmark = pytest.mark.unit
 
 def test_import():
     """Test that main imports work"""
