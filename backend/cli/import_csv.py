@@ -2,9 +2,10 @@
 import sys
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 import pandas as pd
 from sqlmodel import Session, select
+import re
 
 import sys
 import os
@@ -16,6 +17,33 @@ from hoistscraper.models import Website
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# URL validation regex
+URL_REGEX = re.compile(
+    r'^https?://'
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'
+    r'localhost|'
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+    r'(?::\d+)?'
+    r'(?:/?|[/?]\S+)$', re.IGNORECASE
+)
+
+
+def validate_url(url: str) -> bool:
+    """Validate URL format and safety."""
+    if not url or len(url) > 2048:  # Max URL length
+        return False
+    return bool(URL_REGEX.match(url))
+
+
+def sanitize_string(value: str, max_length: int = 255) -> str:
+    """Sanitize and truncate string input."""
+    if not value:
+        return ""
+    # Remove control characters and normalize whitespace
+    value = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', value)
+    value = ' '.join(value.split())
+    return value[:max_length]
 
 
 def run(path: str, batch_size: int = 1000) -> int:

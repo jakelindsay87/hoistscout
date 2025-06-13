@@ -1,5 +1,6 @@
 """Tests for CSV ingest functionality."""
 import os
+import sys
 import pytest
 from pathlib import Path
 from fastapi.testclient import TestClient

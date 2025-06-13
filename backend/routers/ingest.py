@@ -12,7 +12,7 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 import pandas as pd
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from ..hoistscraper.db import get_session
 from ..hoistscraper.models import Website
@@ -70,8 +70,8 @@ def process_csv_chunk(chunk: pd.DataFrame, session: Session) -> tuple[int, int, 
     urls_in_chunk = [str(row.get('url', '')).strip() for _, row in chunk.iterrows()]
     existing_urls = set()
     if urls_in_chunk:
-        existing = session.query(Website.url).filter(Website.url.in_(urls_in_chunk)).all()
-        existing_urls = {url[0] for url in existing}
+        existing = session.exec(select(Website.url).where(Website.url.in_(urls_in_chunk))).all()
+        existing_urls = set(existing)
     
     # Batch create websites
     websites_to_create = []
