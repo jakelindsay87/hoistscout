@@ -22,6 +22,9 @@ psycopg2-binary = "^2.9.9"
 python-multipart = "^0.0.9"
 pandas = "^2.0.0"
 chardet = "^5.0.0"
+rq = "^1.16.0"
+redis = "^5.0.0"
+fakeredis = "^2.21.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2"

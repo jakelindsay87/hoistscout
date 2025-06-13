@@ -14,8 +14,8 @@ from pydantic import BaseModel, Field
 import pandas as pd
 from sqlmodel import Session, select
 
-from ..hoistscraper.db import get_session
-from ..hoistscraper.models import Website
+from hoistscraper.db import get_session
+from hoistscraper.models import Website
 
 router = APIRouter(prefix="/api/ingest", tags=["ingest"])
 logger = logging.getLogger(__name__)

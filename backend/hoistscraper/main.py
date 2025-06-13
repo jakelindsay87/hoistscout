@@ -101,10 +101,11 @@ app.add_middleware(
 )
 
 # Import routers
-from ..routers import ingest
+from routers import ingest, jobs
 
 # Include routers
 app.include_router(ingest.router)
+app.include_router(jobs.router)
 
 @app.get("/")
 async def root():

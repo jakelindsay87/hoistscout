@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import select, func
 from pydantic import BaseModel, HttpUrl
 
-from ..db import get_session, Website
+from db import get_session, Website
 
 router = APIRouter(prefix="/api/sites", tags=["sites"])
 
