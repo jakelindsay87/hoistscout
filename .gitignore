@@ -363,6 +363,9 @@ build/
 dist/
 out/
 
+# Third-party repositories
+awesome-claude-code/
+
 # Add to crontab for daily crawls at 2 AM
 0 2 * * * /usr/bin/python3 /path/to/backend/scripts/cron_hook.py
 
