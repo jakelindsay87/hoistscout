@@ -6,15 +6,18 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy pyproject.toml and poetry.lock
 COPY backend/pyproject.toml backend/poetry.lock* ./
 
-# Install dependencies, including dev for testing
-RUN pip install --no-cache-dir poetry && \
+# Install Poetry with specific version for consistency
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir poetry==1.7.1 && \
     poetry config virtualenvs.create false && \
-    poetry install --no-root
+    poetry install --no-root --no-interaction --no-ansi || \
+    (poetry lock --no-update && poetry install --no-root --no-interaction --no-ansi)
 
 # Install Playwright and browsers
 RUN playwright install --with-deps chromium

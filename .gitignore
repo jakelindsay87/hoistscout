@@ -380,4 +380,4 @@ NOTIFY_EMAIL=admin@company.com
 export PROXY_URLS="http://proxy1:8080,http://proxy2:8080"
 export CRAWL_CONFIG="production_sites.yml"
 export ANALYZE_TERMS="true"
-export OLLAMA_HOST="http://ollama:11434" 
+export OLLAMA_HOST="http://ollama:11434"

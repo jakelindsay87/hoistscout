@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 import { Opportunity } from '@/types'
 import { formatDate, formatDateTime } from '@/lib/utils'
 
@@ -51,12 +52,12 @@ export default function OpportunityDetailPage({ params }: OpportunityDetailPageP
           <div className="text-4xl mb-4">❌</div>
           <h3 className="text-lg font-medium mb-2">Opportunity not found</h3>
           <p className="text-sm">The requested opportunity could not be found.</p>
-          <a 
+          <Link 
             href="/opportunities" 
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 mt-4"
           >
             Back to Opportunities
-          </a>
+          </Link>
         </div>
       </div>
     )
@@ -67,7 +68,7 @@ export default function OpportunityDetailPage({ params }: OpportunityDetailPageP
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <a href="/opportunities" className="hover:text-primary">Opportunities</a>
+          <Link href="/opportunities" className="hover:text-primary">Opportunities</Link>
           <span>→</span>
           <span>{opportunity.title}</span>
         </div>
@@ -211,12 +212,12 @@ export default function OpportunityDetailPage({ params }: OpportunityDetailPageP
 
       {/* Back Button */}
       <div className="pt-8">
-        <a
+        <Link
           href="/opportunities"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
         >
           ← Back to all opportunities
-        </a>
+        </Link>
       </div>
     </div>
   )

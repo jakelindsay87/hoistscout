@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
@@ -23,8 +24,8 @@ export default function RootLayout({
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-primary">HoistScraper</h1>
                 <div className="flex space-x-4">
-                  <a href="/sites" className="text-foreground hover:text-primary">Sites</a>
-                  <a href="/opportunities" className="text-foreground hover:text-primary">Opportunities</a>
+                  <Link href="/sites" className="text-foreground hover:text-primary">Sites</Link>
+                  <Link href="/opportunities" className="text-foreground hover:text-primary">Opportunities</Link>
                 </div>
               </div>
             </div>

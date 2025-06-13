@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Opportunity } from '@/types'
 import { formatDate, truncateText } from '../../lib/utils'
 
@@ -81,47 +82,69 @@ const mockOpportunities: Opportunity[] = [
 ]
 
 export default function OpportunitiesPage() {
+  const router = useRouter()
   const [opportunities] = useState<Opportunity[]>(mockOpportunities)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [sortBy, setSortBy] = useState<'deadline' | 'amount' | 'created_at'>('deadline')
 
-  // Get unique categories
-  const categories = Array.from(
-    new Set(opportunities.flatMap(opp => opp.categories))
-  ).sort()
+  // Memoize unique categories calculation
+  const categories = useMemo(() => {
+    return Array.from(
+      new Set(opportunities.flatMap(opp => opp.categories))
+    ).sort()
+  }, [opportunities])
 
-  // Filter and sort opportunities
-  const filteredOpportunities = opportunities
-    .filter(opp => {
-      const matchesSearch = searchTerm === '' || 
-        opp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        opp.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        opp.organization.toLowerCase().includes(searchTerm.toLowerCase())
-      
-      const matchesCategory = selectedCategory === '' || 
-        opp.categories.includes(selectedCategory)
-      
-      return matchesSearch && matchesCategory
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'deadline':
-          if (!a.deadline && !b.deadline) return 0
-          if (!a.deadline) return 1
-          if (!b.deadline) return -1
-          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-        case 'amount':
-          // Simple amount comparison (would need better parsing in real app)
-          const aAmount = a.amount?.replace(/[^0-9]/g, '') || '0'
-          const bAmount = b.amount?.replace(/[^0-9]/g, '') || '0'
-          return parseInt(bAmount) - parseInt(aAmount)
-        case 'created_at':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        default:
-          return 0
-      }
-    })
+  // Memoize expensive filtering and sorting operations
+  const filteredOpportunities = useMemo(() => {
+    return opportunities
+      .filter(opp => {
+        const matchesSearch = searchTerm === '' || 
+          opp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          opp.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          opp.organization.toLowerCase().includes(searchTerm.toLowerCase())
+        
+        const matchesCategory = selectedCategory === '' || 
+          opp.categories.includes(selectedCategory)
+        
+        return matchesSearch && matchesCategory
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case 'deadline':
+            if (!a.deadline && !b.deadline) return 0
+            if (!a.deadline) return 1
+            if (!b.deadline) return -1
+            return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+          case 'amount':
+            // Simple amount comparison (would need better parsing in real app)
+            const aAmount = a.amount?.replace(/[^0-9]/g, '') || '0'
+            const bAmount = b.amount?.replace(/[^0-9]/g, '') || '0'
+            return parseInt(bAmount) - parseInt(aAmount)
+          case 'created_at':
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          default:
+            return 0
+        }
+      })
+  }, [opportunities, searchTerm, selectedCategory, sortBy])
+
+  // Memoize event handlers
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+  }, [])
+
+  const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCategory(e.target.value)
+  }, [])
+
+  const handleSortChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortBy(e.target.value as 'deadline' | 'amount' | 'created_at')
+  }, [])
+
+  const handleOpportunityClick = useCallback((id: string) => {
+    router.push(`/opportunities/${id}`)
+  }, [router])
 
   return (
     <div className="space-y-6">
@@ -144,14 +167,14 @@ export default function OpportunitiesPage() {
             type="text"
             placeholder="Search opportunities..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             className="w-full px-4 py-2 border border-input rounded-md"
           />
         </div>
         <div className="flex gap-2">
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={handleCategoryChange}
             className="px-3 py-2 border border-input rounded-md"
           >
             <option value="">All Categories</option>
@@ -161,7 +184,7 @@ export default function OpportunitiesPage() {
           </select>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'deadline' | 'amount' | 'created_at')}
+            onChange={handleSortChange}
             className="px-3 py-2 border border-input rounded-md"
           >
             <option value="deadline">Sort by Deadline</option>
@@ -177,7 +200,7 @@ export default function OpportunitiesPage() {
           <div
             key={opportunity.id}
             className="border rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => window.location.href = `/opportunities/${opportunity.id}`}
+            onClick={() => handleOpportunityClick(opportunity.id)}
           >
             <div className="space-y-3">
               <div>

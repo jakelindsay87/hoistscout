@@ -8,8 +8,8 @@ packages = [{include = "hoistscraper"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.110"
-playwright = "^1.44"
+fastapi = "^0.115.12"
+playwright = "^1.52.0"
 playwright-stealth = "^1.0"
 uvicorn = {extras = ["standard"], version = "^0.29"}
 beautifulsoup4 = "^4.12"
@@ -28,6 +28,7 @@ pytest = "^8.2"
 pytest-playwright = "^0.4"
 pytest-cov = "^4.1"
 ruff = "^0.4"
+mypy = "^1.10"
 
 [build-system]
 requires = ["poetry-core"]
