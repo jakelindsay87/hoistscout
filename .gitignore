@@ -362,12 +362,20 @@ secrets.*
 build/
 dist/
 out/
+playwright-report/
+test-results/
+*.tar.gz
+*.tsbuildinfo
 
 # Third-party repositories
-awesome-claude-code/
+# awesome-claude-code/ is now a git submodule
 
 # Tool-specific directories
 .claude/
+
+# Test databases
+test.db
+*.test.db
 
 # Add to crontab for daily crawls at 2 AM
 0 2 * * * /usr/bin/python3 /path/to/backend/scripts/cron_hook.py

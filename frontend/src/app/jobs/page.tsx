@@ -1,14 +1,14 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useMemo } from 'react'
+import { useMemo, Suspense } from 'react'
 import { useJobs, useCreateJob } from '@/hooks/useJobs'
 import { useSites } from '@/hooks/useSites'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toast'
 
-export default function JobsPage() {
+function JobsPageContent() {
   const searchParams = useSearchParams()
   const siteId = searchParams.get('site')
   
@@ -209,5 +209,17 @@ export default function JobsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function JobsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    }>
+      <JobsPageContent />
+    </Suspense>
   )
 }

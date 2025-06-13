@@ -5,9 +5,9 @@ import { useJob } from '@/hooks/useJobs'
 import { useResult } from '@/hooks/useResults'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 
-export default function ResultsPage() {
+function ResultsPageContent() {
   const searchParams = useSearchParams()
   const jobId = searchParams.get('job')
   const [isExpanded, setIsExpanded] = useState(true)
@@ -89,7 +89,7 @@ export default function ResultsPage() {
               <div className="ml-4">
                 {entries.map(([key, value], index) => (
                   <div key={key}>
-                    <span className="text-blue-600">"{key}"</span>: {renderJson(value, `${path}.${key}`)}
+                    <span className="text-blue-600">&quot;{key}&quot;</span>: {renderJson(value, `${path}.${key}`)}
                     {index < entries.length - 1 && ','}
                   </div>
                 ))}
@@ -207,5 +207,17 @@ export default function ResultsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    }>
+      <ResultsPageContent />
+    </Suspense>
   )
 }

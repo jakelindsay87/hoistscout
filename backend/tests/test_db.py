@@ -8,8 +8,9 @@ pytestmark = pytest.mark.integration
 from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine, SQLModel, select
 
-from main import app
-from db import Website, ScrapeJob, get_session
+from hoistscraper.main import app
+from hoistscraper.db import get_session
+from hoistscraper.models import Website, ScrapeJob
 
 # Test database URL
 TEST_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/hoistscraper_test")

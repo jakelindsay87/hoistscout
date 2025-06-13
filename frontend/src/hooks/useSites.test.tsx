@@ -60,7 +60,7 @@ describe('useSites', () => {
 
     expect(result.current.data).toEqual(mockSites)
     expect(result.current.error).toBeUndefined()
-    expect(api.get).toHaveBeenCalledWith('/api/sites')
+    expect(api.get).toHaveBeenCalledWith('/api/websites')
   })
 
   it('should handle errors gracefully', async () => {
@@ -87,7 +87,7 @@ describe('useSites', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(api.get).toHaveBeenCalledWith('/api/sites?page=2&limit=10')
+    expect(api.get).toHaveBeenCalledWith('/api/websites?page=2&limit=10')
   })
 })
 
@@ -113,7 +113,7 @@ describe('useCreateSite', () => {
       createdSite = await result.current.trigger(siteData)
     })
 
-    expect(api.post).toHaveBeenCalledWith('/api/sites', siteData)
+    expect(api.post).toHaveBeenCalledWith('/api/websites', siteData)
     expect(createdSite).toEqual(newSite)
   })
 

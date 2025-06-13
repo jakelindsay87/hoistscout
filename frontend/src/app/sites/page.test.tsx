@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
+import { renderWithProviders as render } from '@/test/test-utils'
 import SitesPage from './page'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/test/mocks/server'
@@ -42,7 +43,7 @@ describe('SitesPage', () => {
   it('should handle empty sites list', async () => {
     // Override the default handler before rendering
     server.use(
-      http.get('http://localhost:8000/api/sites', () => {
+      http.get('http://localhost:8000/api/websites', () => {
         return HttpResponse.json([])
       })
     )
@@ -59,7 +60,7 @@ describe('SitesPage', () => {
 
   it('should handle API errors', async () => {
     server.use(
-      http.get('http://localhost:8000/api/sites', () => {
+      http.get('http://localhost:8000/api/websites', () => {
         return new HttpResponse(null, { status: 500 })
       })
     )

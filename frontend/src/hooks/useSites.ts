@@ -30,7 +30,7 @@ export function useSites(options?: UseSitesOptions) {
   if (options?.limit) params.append('limit', options.limit.toString())
   
   const queryString = params.toString()
-  const url = `/api/sites${queryString ? `?${queryString}` : ''}`
+  const url = `/api/websites${queryString ? `?${queryString}` : ''}`
 
   return useSWR<Website[]>(url, (url: string) => api.get(url))
 }
@@ -40,7 +40,7 @@ export function useSites(options?: UseSitesOptions) {
  */
 export function useSite(id: number | string) {
   return useSWR<Website>(
-    id ? `/api/sites/${id}` : null,
+    id ? `/api/websites/${id}` : null,
     (url: string) => api.get(url)
   )
 }
@@ -50,11 +50,11 @@ export function useSite(id: number | string) {
  */
 export function useCreateSite() {
   return useSWRMutation<Website, Error, string, CreateSiteData>(
-    '/api/sites',
+    '/api/websites',
     async (url, { arg }) => {
       const result = await api.post<Website>(url, arg)
       // Invalidate sites list cache
-      await mutate((key) => typeof key === 'string' && key.startsWith('/api/sites'))
+      await mutate((key) => typeof key === 'string' && key.startsWith('/api/websites'))
       return result
     }
   )
