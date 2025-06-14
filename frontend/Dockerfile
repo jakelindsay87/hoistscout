@@ -1,37 +1,35 @@
-# Fixed Dockerfile for Next.js frontend with proper workspace handling
+# Dockerfile for Next.js frontend
 FROM node:20-alpine AS base
 
-# Install dependencies
+# Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
-COPY frontend/package*.json ./frontend/
+COPY frontend/package*.json ./
 
-# Install dependencies using npm ci for better reproducibility
+# Install dependencies
 RUN npm ci
 
-# Build stage
+# Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 
-# Copy node_modules from deps stage
+# Copy installed dependencies
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy all source files
-COPY . .
+# Copy source files
+COPY frontend/ ./
 
 # Set build-time environment variables
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=512"
 
-# Build the Next.js app directly in the frontend directory
-WORKDIR /app/frontend
+# Build Next.js
 RUN npm run build
 
-# Production stage
+# Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
@@ -42,14 +40,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy only necessary files for production
-COPY --from=builder /app/frontend/package.json ./
-COPY --from=builder /app/frontend/.next/standalone ./
-COPY --from=builder /app/frontend/.next/static ./.next/static
-COPY --from=builder /app/frontend/public ./public
-
-# Fix: Ensure next.config.js is in the right place
-COPY --from=builder /app/frontend/next.config.js ./
+# Copy the standalone build
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
 USER nextjs
 
@@ -57,5 +51,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Use the standalone server
+# Next.js standalone server
 CMD ["node", "server.js"]
