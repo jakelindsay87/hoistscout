@@ -3,7 +3,7 @@
 import os
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from bs4 import BeautifulSoup
 from firecrawl import Firecrawl
 

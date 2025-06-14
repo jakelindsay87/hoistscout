@@ -3,16 +3,14 @@ import os
 import sys
 import pytest
 from pathlib import Path
+from fastapi.testclient import TestClient
+from sqlmodel import Session, create_engine, SQLModel, select
+import tempfile
+from hoistscraper.main import app
+from hoistscraper import models, db
 
 # Mark all tests in this module as integration tests
 pytestmark = pytest.mark.integration
-from fastapi.testclient import TestClient
-from sqlmodel import Session, create_engine, SQLModel, select
-import pandas as pd
-import tempfile
-
-from hoistscraper.main import app
-from hoistscraper import models, db
 
 # Test database URL
 TEST_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/hoistscraper_test")

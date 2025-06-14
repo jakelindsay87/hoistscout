@@ -10,14 +10,15 @@ from playwright.sync_api import sync_playwright, Page, Browser
 from playwright_stealth import stealth_sync
 from sqlmodel import Session
 
-from hoistscraper.db import get_session, engine
+from hoistscraper.db import engine
 from hoistscraper.models import Website, ScrapeJob, JobStatus
 
 logger = logging.getLogger(__name__)
 
 # Data directory for storing scraped content
 DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
-DATA_DIR.mkdir(exist_ok=True)
+# Only create directory when actually needed, not on import
+# This avoids permission errors during tests
 
 
 class ScraperWorker:
@@ -100,6 +101,9 @@ class ScraperWorker:
                     }
                 }
                 
+                # Ensure data directory exists
+                DATA_DIR.mkdir(exist_ok=True)
+                
                 # Save raw HTML
                 html_path = DATA_DIR / f"{job_id}.html"
                 with open(html_path, 'w', encoding='utf-8') as f:
@@ -167,7 +171,6 @@ def scrape_website_job(website_id: int, job_id: int) -> Dict[str, Any]:
 
 # Worker entry point for RQ
 if __name__ == '__main__':
-    import sys
     from rq import Worker, Queue, Connection
     from hoistscraper.queue import redis_conn
     

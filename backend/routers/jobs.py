@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime, UTC
 
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from hoistscraper.db import get_session
@@ -70,7 +70,7 @@ def trigger_scrape(
     
     # Enqueue job to RQ
     try:
-        rq_job = enqueue_job(
+        enqueue_job(
             scrape_website_job,
             website_id,
             scrape_job.id,

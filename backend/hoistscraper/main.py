@@ -11,6 +11,7 @@ import os
 from contextlib import asynccontextmanager
 from sqlalchemy.exc import IntegrityError
 from pathlib import Path
+from routers import ingest, jobs
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -40,7 +41,7 @@ async def auto_seed_from_csv(csv_path: str):
     finally:
         try:
             session_gen.close()
-        except:
+        except Exception:
             pass
     
     # Run the import
@@ -99,9 +100,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Import routers
-from routers import ingest, jobs
 
 # Include routers
 app.include_router(ingest.router)

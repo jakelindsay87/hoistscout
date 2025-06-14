@@ -1,12 +1,10 @@
 """CSV ingest API routes."""
-import io
 import logging
 import os
 import tempfile
 from typing import Optional, List
 import chardet
 import re
-from urllib.parse import urlparse
 
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -275,7 +273,7 @@ async def ingest_csv(
             errors=all_errors if all_errors else None
         )
     
-    except Exception as e:
+    except Exception:
         # Ensure temp file is cleaned up on any error
         if temp_file and os.path.exists(temp_file):
             os.unlink(temp_file)
