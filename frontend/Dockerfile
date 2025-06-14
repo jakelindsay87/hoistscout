@@ -1,55 +1,61 @@
+# Fixed Dockerfile for Next.js frontend with proper workspace handling
 FROM node:20-alpine AS base
 
-# 1. Install dependencies only when needed
+# Install dependencies
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files from root and frontend
-COPY package.json package-lock.json* ./
-COPY frontend/package.json ./frontend/
-# Install all dependencies
+# Copy package files
+COPY package*.json ./
+COPY frontend/package*.json ./frontend/
+
+# Install dependencies using npm ci for better reproducibility
 RUN npm ci
 
-# 2. Rebuild the source code only when needed
+# Build stage
 FROM base AS builder
 WORKDIR /app
+
+# Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-# Copy all project files, including the frontend directory
+
+# Copy all source files
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# Set memory limit for Node.js to prevent OOM errors
+# Set build-time environment variables
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=512"
 
-# Build Next.js directly in the frontend directory
+# Build the Next.js app directly in the frontend directory
 WORKDIR /app/frontend
 RUN npm run build
 
-# Return to app root for consistency
-WORKDIR /app
-
-# 3. Production image, copy all the files and run next
+# Production stage
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
+# Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# For standalone mode, copy the standalone output
+# Copy only necessary files for production
+COPY --from=builder /app/frontend/package.json ./
 COPY --from=builder /app/frontend/.next/standalone ./
-COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
-COPY --from=builder /app/frontend/public ./frontend/public
+COPY --from=builder /app/frontend/.next/static ./.next/static
+COPY --from=builder /app/frontend/public ./public
+
+# Fix: Ensure next.config.js is in the right place
+COPY --from=builder /app/frontend/next.config.js ./
 
 USER nextjs
-EXPOSE 3000
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
 
-# Start the standalone Next.js server
-WORKDIR /app/frontend
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Use the standalone server
 CMD ["node", "server.js"]

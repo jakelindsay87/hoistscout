@@ -56,6 +56,8 @@ RUN mkdir -p /data
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV DATA_DIR=/data
+ENV REDIS_HOST=hoistscraper-redis
+ENV REDIS_PORT=6379
 
-# Run the worker
-CMD ["python", "-m", "hoistscraper.worker"]
+# Run the worker with entrypoint script
+CMD ["./worker_entrypoint.sh"]
