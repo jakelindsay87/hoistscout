@@ -1,7 +1,10 @@
 """Job management API routes."""
+import json
 import logging
-from typing import List, Optional
+import os
+from typing import List, Optional, Dict, Any
 from datetime import datetime, UTC
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -37,6 +40,15 @@ class JobStatusResponse(BaseModel):
     ended_at: Optional[datetime] = None
     result: Optional[dict] = None
     error: Optional[str] = None
+
+
+class ScrapeResultResponse(BaseModel):
+    """Response schema for scrape results."""
+    jobId: str
+    websiteId: int
+    url: str
+    scrapedAt: str
+    data: Dict[str, Any]
 
 
 @router.post("/scrape/{website_id}", response_model=JobResponse)
@@ -240,3 +252,82 @@ def get_website_jobs(
         )
         for job in jobs
     ]
+
+
+@router.get("/results/{job_id}", response_model=ScrapeResultResponse)
+def get_scrape_results(
+    job_id: int,
+    session: Session = Depends(get_session)
+):
+    """
+    Get the scraping results for a completed job.
+    
+    Args:
+        job_id: ID of the job
+        
+    Returns:
+        Scraping results including scraped data
+    """
+    # Get job from database
+    job = session.get(ScrapeJob, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    
+    # Check if job is completed
+    if job.status != JobStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Job {job_id} is not completed. Current status: {job.status}"
+        )
+    
+    # Check if result path exists
+    if not job.raw_data:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"No results found for job {job_id}"
+        )
+    
+    # Read results from file
+    data_dir = os.environ.get("DATA_DIR", "/data")
+    result_path = Path(data_dir) / job.raw_data
+    
+    if not result_path.exists():
+        # Try without data_dir prefix if the path is absolute
+        result_path = Path(job.raw_data)
+        if not result_path.exists():
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Result file not found for job {job_id}"
+            )
+    
+    try:
+        with open(result_path, 'r', encoding='utf-8') as f:
+            result_data = json.load(f)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Invalid JSON in result file for job {job_id}"
+        )
+    except Exception as e:
+        logger.error(f"Error reading results for job {job_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error reading results: {str(e)}"
+        )
+    
+    # Get website info for the URL
+    website = session.get(Website, job.website_id)
+    if not website:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Website {job.website_id} not found"
+        )
+    
+    # Format response
+    return ScrapeResultResponse(
+        jobId=str(job.id),
+        websiteId=job.website_id,
+        url=website.url,
+        scrapedAt=result_data.get("scraped_at", job.completed_at.isoformat() if job.completed_at else ""),
+        data=result_data
+    )

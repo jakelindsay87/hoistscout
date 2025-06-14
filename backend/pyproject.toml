@@ -15,8 +15,8 @@ uvicorn = {extras = ["standard"], version = "^0.29"}
 beautifulsoup4 = "^4.12"
 httpx = "^0.27"
 tenacity = "^8.2"
-firecrawl-py = "0.0.6"
-ollama = "^0.1.7"
+# firecrawl-py = "0.0.6"  # Removed - using BeautifulSoup instead
+# ollama = "^0.1.7"  # Removed - not needed without firecrawl
 sqlmodel = "^0.0.16"
 psycopg2-binary = "^2.9.9"
 python-multipart = "^0.0.9"
@@ -25,7 +25,7 @@ chardet = "^5.0.0"
 rq = "^1.16.0"
 redis = "^5.0.0"
 fakeredis = "^2.21.0"
-setuptools = "^80.9.0"
+setuptools = "~80.9.0"  # Pinned to avoid pkg_resources deprecation warning
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2"

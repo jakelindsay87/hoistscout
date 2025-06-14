@@ -38,9 +38,25 @@ export async function apiFetch<T = any>(
     ...fetchOptions
   } = options
 
-  // Get base URL from environment or default
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  // Get base URL - use runtime detection for better deployment handling
+  const getBaseUrl = () => {
+    // In browser, check if we're on localhost
+    if (typeof window !== 'undefined') {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:8000'
+      }
+    }
+    // Use environment variable (set at build time)
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  }
+  
+  const baseUrl = getBaseUrl()
   const url = `${baseUrl}${path}`
+  
+  // Log API calls in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`API Call: ${options.method || 'GET'} ${url}`)
+  }
 
   // Setup headers
   const defaultHeaders: HeadersInit = {}

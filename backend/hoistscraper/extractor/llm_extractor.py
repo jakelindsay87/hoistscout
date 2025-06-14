@@ -1,26 +1,15 @@
-"""LLM-powered extraction using Firecrawl and Ollama."""
+"""BeautifulSoup-based extraction for opportunities and terms analysis."""
 
 import os
 import json
 import logging
 from typing import Dict, Any
 from bs4 import BeautifulSoup
-from firecrawl import Firecrawl
 
 from .schemas import OPPORTUNITY_EXTRACTION_SCHEMA, TERMS_ANALYSIS_SCHEMA
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-# Initialize Firecrawl with Ollama backend
-# In production, use internal service networking
-if os.getenv("RENDER"):
-    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://ollama:11434")
-else:
-    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-
-logger.info(f"Initializing Firecrawl with Ollama at {OLLAMA_HOST}")
-FC = Firecrawl(model="ollama/mistral:7b-q4_K_M", api_base=OLLAMA_HOST)
 
 
 async def extract_opportunity(html: str, url: str) -> Dict[str, Any]:
@@ -38,53 +27,6 @@ async def extract_opportunity(html: str, url: str) -> Dict[str, Any]:
     """
     try:
         logger.info(f"Extracting opportunity data from {url}")
-        
-        # Use Firecrawl's extract_async with structured schema
-        resp = await FC.extract_async(
-            html=html,
-            url=url,
-            schema=OPPORTUNITY_EXTRACTION_SCHEMA,
-            system_prompt=(
-                "Extract opportunity/grant information from the provided content. "
-                "Return STRICT JSON only, following the exact schema provided. "
-                "If a field is not found, use null for optional fields or empty array for lists. "
-                "Focus on funding opportunities, grants, competitions, or similar opportunities."
-            )
-        )
-        
-        # Parse and validate the response
-        if hasattr(resp, 'json'):
-            result = resp.json()
-        else:
-            result = json.loads(str(resp))
-            
-        logger.info(f"Successfully extracted opportunity: {result.get('title', 'Unknown')}")
-        return result
-        
-    except Exception as e:
-        logger.error(f"Failed to extract opportunity from {url}: {str(e)}")
-        # Return a basic structure with error info
-        return {
-            "title": "Extraction Failed",
-            "description": f"Failed to extract data: {str(e)}",
-            "organization": "Unknown",
-            "error": str(e),
-            "source_url": url
-        }
-
-
-async def extract_opportunity_bs(html: str, url: str) -> Dict[str, Any]:
-    """Extract opportunity data using BeautifulSoup (fallback method).
-    
-    Args:
-        html: HTML content to extract from
-        url: Source URL for context
-        
-    Returns:
-        Dictionary containing basic extracted data
-    """
-    try:
-        logger.info(f"Using BeautifulSoup extraction for {url}")
         soup = BeautifulSoup(html, 'html.parser')
         
         # Extract title - try common heading tags
@@ -99,45 +41,88 @@ async def extract_opportunity_bs(html: str, url: str) -> Dict[str, Any]:
             title = "Opportunity - Manual Review Required"
         
         # Extract description - get first few paragraphs
-        paragraphs = soup.find_all('p', limit=3)
+        paragraphs = soup.find_all('p', limit=5)
         description = ' '.join([p.get_text(strip=True) for p in paragraphs])
         
         if not description:
             # Fallback to all text content (limited)
             text_content = soup.get_text(strip=True, separator=' ')
-            description = text_content[:500] + "..." if len(text_content) > 500 else text_content
+            description = text_content[:1000] + "..." if len(text_content) > 1000 else text_content
         
         # Try to find organization name in common patterns
         organization = "Unknown Organization"
-        for pattern in ['organization', 'company', 'agency', 'foundation']:
-            element = soup.find(text=lambda text: text and pattern.lower() in text.lower())
-            if element:
-                # Get the parent element's text
-                parent = element.parent
-                if parent:
-                    org_text = parent.get_text(strip=True)
-                    if len(org_text) < 100:  # Reasonable org name length
-                        organization = org_text
-                        break
         
-        return {
+        # Look for meta tags first
+        org_meta = soup.find('meta', {'name': ['author', 'organization', 'publisher']})
+        if org_meta and org_meta.get('content'):
+            organization = org_meta['content']
+        else:
+            # Try to find in text patterns
+            for pattern in ['organization', 'company', 'agency', 'foundation', 'ministry', 'department']:
+                # Case-insensitive search for text containing the pattern
+                element = soup.find(text=lambda text: text and pattern.lower() in text.lower())
+                if element:
+                    # Get the parent element's text
+                    parent = element.parent
+                    if parent:
+                        org_text = parent.get_text(strip=True)
+                        if 10 < len(org_text) < 100:  # Reasonable org name length
+                            organization = org_text
+                            break
+        
+        # Extract deadline if possible
+        deadline = None
+        deadline_patterns = ['deadline', 'due date', 'closing date', 'submission date', 'expires']
+        for pattern in deadline_patterns:
+            deadline_elem = soup.find(text=lambda text: text and pattern.lower() in text.lower())
+            if deadline_elem:
+                parent_text = deadline_elem.parent.get_text(strip=True) if deadline_elem.parent else ""
+                if parent_text and len(parent_text) < 200:
+                    deadline = parent_text
+                    break
+        
+        # Extract amount if possible
+        amount = None
+        amount_patterns = ['amount', 'funding', 'grant', '$', '€', '£']
+        for pattern in amount_patterns:
+            amount_elem = soup.find(text=lambda text: text and pattern in text.lower())
+            if amount_elem:
+                parent_text = amount_elem.parent.get_text(strip=True) if amount_elem.parent else ""
+                if parent_text and len(parent_text) < 100:
+                    amount = parent_text
+                    break
+        
+        result = {
             "title": title,
             "description": description,
             "organization": organization,
             "source_url": url,
             "extraction_method": "beautifulsoup",
-            "requires_manual_review": True
+            "deadline": deadline,
+            "amount": amount,
+            "requires_manual_review": False
         }
         
+        logger.info(f"Successfully extracted opportunity: {result.get('title', 'Unknown')}")
+        return result
+        
     except Exception as e:
-        logger.error(f"BeautifulSoup extraction failed for {url}: {str(e)}")
+        logger.error(f"Failed to extract opportunity from {url}: {str(e)}")
+        # Return a basic structure with error info
         return {
             "title": "Extraction Failed",
             "description": f"Failed to extract data: {str(e)}",
             "organization": "Unknown",
             "error": str(e),
-            "source_url": url
+            "source_url": url,
+            "extraction_method": "beautifulsoup",
+            "requires_manual_review": True
         }
+
+
+async def extract_opportunity_bs(html: str, url: str) -> Dict[str, Any]:
+    """Alias for extract_opportunity for backward compatibility."""
+    return await extract_opportunity(html, url)
 
 
 async def analyse_terms(text: str) -> Dict[str, Any]:
@@ -155,28 +140,78 @@ async def analyse_terms(text: str) -> Dict[str, Any]:
     try:
         logger.info("Analyzing terms and conditions")
         
-        prompt = (
-            "Analyze the following terms and conditions text. "
-            "Summarize the key clauses, then answer ONLY true/false for each question: "
-            "(a) Is commercial use allowed? "
-            "(b) Is web scraping/crawling forbidden? "
-            "Also identify key data usage rights, liability clauses, and termination conditions. "
-            "Output JSON following the exact schema provided."
-        )
+        # Convert to lowercase for searching
+        text_lower = text.lower()
         
-        # Use Firecrawl's chat_async for analysis
-        resp = await FC.chat_async(
-            text,
-            system_prompt=prompt,
-            schema=TERMS_ANALYSIS_SCHEMA
-        )
+        # Check for commercial use patterns
+        commercial_allow_patterns = [
+            'commercial use is permitted',
+            'commercial use allowed',
+            'may use for commercial',
+            'commercial purposes allowed'
+        ]
+        commercial_forbid_patterns = [
+            'no commercial use',
+            'non-commercial only',
+            'not for commercial',
+            'commercial use is prohibited',
+            'personal use only'
+        ]
         
-        # Parse and validate the response
-        if hasattr(resp, 'json'):
-            result = resp.json()
-        else:
-            result = json.loads(str(resp))
-            
+        allows_commercial = any(pattern in text_lower for pattern in commercial_allow_patterns)
+        forbids_commercial = any(pattern in text_lower for pattern in commercial_forbid_patterns)
+        
+        # If we find forbidding patterns, commercial use is not allowed
+        allows_commercial_use = allows_commercial and not forbids_commercial
+        
+        # Check for scraping/crawling patterns
+        scraping_forbid_patterns = [
+            'no scraping',
+            'no crawling',
+            'no robots',
+            'no automated',
+            'scraping is prohibited',
+            'crawling is prohibited',
+            'do not scrape',
+            'do not crawl'
+        ]
+        scraping_allow_patterns = [
+            'scraping is allowed',
+            'crawling is permitted',
+            'automated access allowed'
+        ]
+        
+        forbids_scraping = any(pattern in text_lower for pattern in scraping_forbid_patterns)
+        allows_scraping = any(pattern in text_lower for pattern in scraping_allow_patterns)
+        
+        # If we find forbidding patterns or don't explicitly find allowing patterns, assume scraping is forbidden
+        forbids_scraping_result = forbids_scraping or not allows_scraping
+        
+        # Create a summary of key points
+        summary_points = []
+        
+        # Look for key sections
+        if 'commercial' in text_lower:
+            summary_points.append("Contains commercial use terms")
+        if 'scraping' in text_lower or 'crawling' in text_lower or 'automated' in text_lower:
+            summary_points.append("Contains automated access terms")
+        if 'liability' in text_lower:
+            summary_points.append("Contains liability clauses")
+        if 'termination' in text_lower:
+            summary_points.append("Contains termination conditions")
+        if 'privacy' in text_lower or 'data' in text_lower:
+            summary_points.append("Contains data/privacy terms")
+        
+        summary = "; ".join(summary_points) if summary_points else "Standard terms and conditions"
+        
+        result = {
+            "summary": summary,
+            "allows_commercial_use": allows_commercial_use,
+            "forbids_scraping": forbids_scraping_result,
+            "extraction_method": "pattern_matching",
+            "confidence": "low"  # Since we're using simple pattern matching
+        }
+        
         logger.info("Successfully analyzed terms and conditions")
         return result
         
@@ -187,7 +222,8 @@ async def analyse_terms(text: str) -> Dict[str, Any]:
             "summary": f"Analysis failed: {str(e)}",
             "allows_commercial_use": False,  # Conservative default
             "forbids_scraping": True,        # Conservative default
-            "error": str(e)
+            "error": str(e),
+            "extraction_method": "pattern_matching"
         }
 
 
@@ -213,35 +249,26 @@ async def extract_with_fallback(html: str, url: str, extraction_type: str = "opp
             raise ValueError(f"Unknown extraction type: {extraction_type}")
             
     except Exception as e:
-        logger.warning(f"Structured extraction failed, falling back to basic extraction: {str(e)}")
+        logger.warning(f"Extraction failed, returning basic structure: {str(e)}")
         
-        # Fallback to basic text extraction
-        try:
-            text_content = await extract_text_content(html)
-            
-            if extraction_type == "opportunity":
-                return {
-                    "title": "Manual Review Required",
-                    "description": text_content[:500] + "..." if len(text_content) > 500 else text_content,
-                    "organization": "Unknown",
-                    "source_url": url,
-                    "extraction_method": "fallback",
-                    "full_text": text_content
-                }
-            else:  # terms
-                return {
-                    "summary": text_content[:200] + "..." if len(text_content) > 200 else text_content,
-                    "allows_commercial_use": False,
-                    "forbids_scraping": True,
-                    "extraction_method": "fallback",
-                    "full_text": text_content
-                }
-                
-        except Exception as fallback_error:
-            logger.error(f"Fallback extraction also failed: {str(fallback_error)}")
+        # Return minimal structure
+        if extraction_type == "opportunity":
             return {
-                "error": f"All extraction methods failed: {str(e)}, {str(fallback_error)}",
-                "source_url": url
+                "title": "Manual Review Required",
+                "description": "Failed to extract content",
+                "organization": "Unknown",
+                "source_url": url,
+                "extraction_method": "fallback",
+                "error": str(e),
+                "requires_manual_review": True
+            }
+        else:  # terms
+            return {
+                "summary": "Failed to analyze terms",
+                "allows_commercial_use": False,
+                "forbids_scraping": True,
+                "extraction_method": "fallback",
+                "error": str(e)
             }
 
 
@@ -255,28 +282,29 @@ async def extract_text_content(html: str) -> str:
         Clean text content
     """
     try:
-        # Use Firecrawl's scrape functionality to get clean text
-        resp = await FC.scrape_async(html=html, formats=["text"])
+        soup = BeautifulSoup(html, 'html.parser')
         
-        if hasattr(resp, 'text'):
-            return resp.text
-        elif hasattr(resp, 'content'):
-            return resp.content
-        else:
-            # Fallback to basic HTML stripping
-            soup = BeautifulSoup(html, 'html.parser')
-            return soup.get_text(strip=True, separator=' ')
-            
+        # Remove script and style elements
+        for script in soup(["script", "style"]):
+            script.decompose()
+        
+        # Get text
+        text = soup.get_text(strip=True, separator=' ')
+        
+        # Break into lines and remove leading and trailing space on each
+        lines = (line.strip() for line in text.splitlines())
+        
+        # Break multi-headlines into a line each
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        
+        # Drop blank lines
+        text = ' '.join(chunk for chunk in chunks if chunk)
+        
+        return text
+        
     except Exception as e:
-        logger.warning(f"Failed to extract text with Firecrawl, using BeautifulSoup fallback: {str(e)}")
-        
-        # Fallback to BeautifulSoup
-        try:
-            soup = BeautifulSoup(html, 'html.parser')
-            return soup.get_text(strip=True, separator=' ')
-        except Exception as bs_error:
-            logger.error(f"BeautifulSoup fallback also failed: {str(bs_error)}")
-            return html  # Return raw HTML as last resort
+        logger.error(f"Failed to extract text content: {str(e)}")
+        return html  # Return raw HTML as last resort
 
 
 # Utility functions for batch processing
@@ -300,7 +328,9 @@ async def batch_extract_opportunities(html_content_list: list, urls: list) -> li
             results.append({
                 "error": str(e),
                 "source_url": url,
-                "title": "Batch Extraction Failed"
+                "title": "Batch Extraction Failed",
+                "extraction_method": "beautifulsoup",
+                "requires_manual_review": True
             })
     
-    return results 
+    return results
