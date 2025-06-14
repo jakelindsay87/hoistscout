@@ -1,6 +1,6 @@
 """Tests for queue operations."""
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from fakeredis import FakeRedis
 from rq import Queue
 from rq.job import Job
@@ -54,15 +54,14 @@ def test_enqueue_job(mock_queue, fake_redis):
     """Test enqueuing a job."""
     from hoistscraper.queue import enqueue_job
     
-    # Mock function to enqueue
-    def test_func(x, y):
-        return x + y
+    # Use a built-in function that can be serialized
+    test_func = sum
     
     with patch('hoistscraper.queue.redis_conn', fake_redis):
-        job = enqueue_job(test_func, 1, 2, queue_name='scraper')
+        job = enqueue_job(test_func, [1, 2], queue_name='scraper')
         assert isinstance(job, Job)
         assert job.func == test_func
-        assert job.args == (1, 2)
+        assert job.args == ([1, 2],)
 
 
 def test_get_job_status_exists():

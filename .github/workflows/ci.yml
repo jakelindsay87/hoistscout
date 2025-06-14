@@ -71,25 +71,49 @@ jobs:
         run: |
           cd backend
           poetry run pytest -m "not integration" -v
+
+  test-fe:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
       
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
       
-      - name: Install and test frontend
-        env:
-          NODE_OPTIONS: "--max-old-space-size=1024"
+      - name: Install dependencies
         run: |
           cd frontend
           npm ci
+      
+      - name: Run linting
+        run: |
+          cd frontend
           npm run lint
+      
+      - name: Run type checking
+        run: |
+          cd frontend
           npm run type-check
+      
+      - name: Run tests
+        run: |
+          cd frontend
           npm run test
+      
+      - name: Verify Next.js build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=2048"
+        run: |
+          cd frontend
+          npm run build
 
   test-queue:
     name: Queue and Worker Tests
     runs-on: ubuntu-latest
-    needs: [integration-tests, unit-tests]
+    needs: [integration-tests, unit-tests, test-fe]
     
     steps:
       - uses: actions/checkout@v4

@@ -25,6 +25,7 @@ chardet = "^5.0.0"
 rq = "^1.16.0"
 redis = "^5.0.0"
 fakeredis = "^2.21.0"
+setuptools = "^80.9.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2"

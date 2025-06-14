@@ -2,12 +2,11 @@
 import sys
 import logging
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 import pandas as pd
-from sqlmodel import Session, select
+from sqlmodel import select
 import re
 
-import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -189,7 +188,7 @@ def process_chunk(df: pd.DataFrame) -> Tuple[int, int]:
         # Properly close the session
         try:
             session_gen.close()
-        except:
+        except Exception:
             pass
     
     return imported, skipped

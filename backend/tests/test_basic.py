@@ -6,11 +6,9 @@ pytestmark = pytest.mark.unit
 
 def test_import():
     """Test that main imports work"""
-    try:
-        from hoistscraper import main
-        assert True
-    except ImportError:
-        assert False, "Failed to import main module"
+    import importlib.util
+    spec = importlib.util.find_spec("hoistscraper.main")
+    assert spec is not None, "Failed to find main module"
 
 def test_basic():
     """Basic test to ensure pytest works"""

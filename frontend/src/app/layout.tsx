@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Inter } from 'next/font/google'
+import { ErrorBoundaryClass } from '@/components/ErrorBoundary'
+import { ToastContainer } from '@/components/ui/toast'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -25,15 +27,19 @@ export default function RootLayout({
                 <h1 className="text-2xl font-bold text-primary">HoistScraper</h1>
                 <div className="flex space-x-4">
                   <Link href="/sites" className="text-foreground hover:text-primary">Sites</Link>
-                  <Link href="/opportunities" className="text-foreground hover:text-primary">Opportunities</Link>
+                  <Link href="/jobs" className="text-foreground hover:text-primary">Jobs</Link>
+                  <Link href="/results" className="text-foreground hover:text-primary">Results</Link>
                 </div>
               </div>
             </div>
           </nav>
           <main className="container mx-auto px-4 py-8">
-            {children}
+            <ErrorBoundaryClass>
+              {children}
+            </ErrorBoundaryClass>
           </main>
         </div>
+        <ToastContainer />
       </body>
     </html>
   )

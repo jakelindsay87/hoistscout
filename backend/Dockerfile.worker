@@ -7,6 +7,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     curl \
     git \
+    netcat-traditional \
     # Playwright dependencies
     libnss3 \
     libnspr4 \
@@ -44,6 +45,10 @@ RUN playwright install chromium
 
 # Copy application code
 COPY . .
+
+# Copy and set permissions for entrypoint script
+COPY worker_entrypoint.sh ./
+RUN chmod +x worker_entrypoint.sh
 
 # Create data directory
 RUN mkdir -p /data
