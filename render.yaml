@@ -1,13 +1,12 @@
 services:
   # Redis Service for job queue
-  - type: web
+  - type: pserv
     name: hoistscraper-redis
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscraper
     dockerfilePath: ./redis/Dockerfile
-    dockerCommand: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    dockerCommand: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --bind 0.0.0.0 --protected-mode no
     plan: starter
-    healthCheckPath: /
     
   # Worker Service for background scraping
   - type: worker
@@ -21,7 +20,10 @@ services:
           name: hoistscraper-db
           property: connectionString
       - key: REDIS_URL
-        value: redis://hoistscraper-redis:6379
+        fromService:
+          type: pserv
+          name: hoistscraper-redis
+          property: hostport
       - key: DATA_DIR
         value: /data
     disk:
@@ -58,7 +60,10 @@ services:
           name: hoistscraper-db
           property: connectionString
       - key: REDIS_URL
-        value: redis://hoistscraper-redis:6379
+        fromService:
+          type: pserv
+          name: hoistscraper-redis
+          property: hostport
       - key: CRAWL_CONCURRENCY
         value: "8"
       - key: SMTP_SERVER

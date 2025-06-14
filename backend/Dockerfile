@@ -25,6 +25,13 @@ RUN playwright install --with-deps chromium
 # Copy application code
 COPY backend/ .
 
+# Copy and make entrypoint executable
+COPY backend/api_entrypoint.sh ./
+RUN chmod +x api_entrypoint.sh
+
+# Create data directory
+RUN mkdir -p /data
+
 # Expose port
 EXPOSE 8000
 
@@ -32,5 +39,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
-CMD ["uvicorn", "hoistscraper.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Use the entrypoint script
+CMD ["./api_entrypoint.sh"] 
