@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from typing import List
 from . import models, db
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -93,7 +93,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://localhost:3001", 
+        "http://localhost:3001",
+        "http://localhost:3002",
         "http://frontend:3000",
         "https://hoistscraper-fe.onrender.com"
     ],
@@ -229,7 +230,72 @@ def update_scrape_job(job_id: int, job: models.ScrapeJobCreate, session: Session
     session.refresh(db_job)
     return db_job
 
-@app.get("/api/opportunities")
-async def get_opportunities():
-    """Get scraped opportunities."""
-    return [] 
+# Opportunity API endpoints
+@app.get("/api/opportunities", response_model=List[models.OpportunityRead])
+def read_opportunities(session: Session = Depends(db.get_session)):
+    """Get all scraped opportunities."""
+    opportunities = session.exec(select(models.Opportunity)).all()
+    return opportunities
+
+@app.get("/api/opportunities/{opportunity_id}", response_model=models.OpportunityRead)
+def read_opportunity(opportunity_id: int, session: Session = Depends(db.get_session)):
+    """Get a specific opportunity by ID."""
+    opportunity = session.get(models.Opportunity, opportunity_id)
+    if not opportunity:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+    return opportunity
+
+@app.post("/api/opportunities", response_model=models.OpportunityRead)
+def create_opportunity(opportunity: models.OpportunityCreate, session: Session = Depends(db.get_session)):
+    """Create a new opportunity."""
+    # Verify website and job exist
+    website = session.get(models.Website, opportunity.website_id)
+    if not website:
+        raise HTTPException(status_code=404, detail="Website not found")
+    
+    job = session.get(models.ScrapeJob, opportunity.job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Scrape job not found")
+    
+    db_opportunity = models.Opportunity.model_validate(opportunity)
+    session.add(db_opportunity)
+    session.commit()
+    session.refresh(db_opportunity)
+    return db_opportunity
+
+@app.delete("/api/opportunities/{opportunity_id}")
+def delete_opportunity(opportunity_id: int, session: Session = Depends(db.get_session)):
+    """Delete an opportunity."""
+    opportunity = session.get(models.Opportunity, opportunity_id)
+    if not opportunity:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+    
+    session.delete(opportunity)
+    session.commit()
+    return {"ok": True}
+
+@app.get("/api/stats")
+def get_stats(session: Session = Depends(db.get_session)):
+    """Get overall statistics."""
+    total_sites = len(session.exec(select(models.Website)).all())
+    total_jobs = len(session.exec(select(models.ScrapeJob)).all())
+    total_opportunities = len(session.exec(select(models.Opportunity)).all())
+    
+    # Get recent job activity (last 7 days)
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    recent_jobs = session.exec(
+        select(models.ScrapeJob).where(models.ScrapeJob.created_at >= seven_days_ago)
+    ).all()
+    
+    # Get last scrape time
+    last_job = session.exec(
+        select(models.ScrapeJob).order_by(models.ScrapeJob.created_at.desc())
+    ).first()
+    
+    return {
+        "total_sites": total_sites,
+        "total_jobs": total_jobs,
+        "total_opportunities": total_opportunities,
+        "jobs_this_week": len(recent_jobs),
+        "last_scrape": last_job.created_at if last_job else None
+    } 

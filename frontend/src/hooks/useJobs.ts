@@ -1,19 +1,21 @@
 import useSWR, { mutate } from 'swr'
 import useSWRMutation from 'swr/mutation'
-import { api } from '@/lib/apiFetch'
+import { apiFetch } from '@/lib/apiFetch'
 
 export interface ScrapeJob {
-  id: string
+  id: number
   website_id: number
   status: 'pending' | 'running' | 'completed' | 'failed'
   started_at?: string
   completed_at?: string
-  result_path?: string
-  error?: string
+  error_message?: string
+  raw_data?: string
+  created_at: string
+  updated_at: string
 }
 
 export interface CreateJobData {
-  websiteId: number
+  website_id: number
 }
 
 interface UseJobsOptions {
@@ -25,16 +27,9 @@ interface UseJobsOptions {
  * Hook to fetch all jobs with optional filtering
  */
 export function useJobs(options?: UseJobsOptions) {
-  const params = new URLSearchParams()
-  if (options?.websiteId) params.append('website_id', options.websiteId.toString())
-  if (options?.status) params.append('status', options.status)
-  
-  const queryString = params.toString()
-  const url = `/api/jobs${queryString ? `?${queryString}` : ''}`
-
   return useSWR<ScrapeJob[]>(
-    url,
-    (url) => api.get(url),
+    '/api/scrape-jobs',
+    apiFetch,
     {
       refreshInterval: 3000 // Poll every 3 seconds for status updates
     }
@@ -44,10 +39,10 @@ export function useJobs(options?: UseJobsOptions) {
 /**
  * Hook to fetch a single job by ID
  */
-export function useJob(id: string | null) {
+export function useJob(id: number | null) {
   return useSWR<ScrapeJob>(
-    id ? `/api/jobs/${id}` : null,
-    (url) => api.get(url),
+    id ? `/api/scrape-jobs/${id}` : null,
+    apiFetch,
     {
       refreshInterval: (data) => {
         // Poll while job is running
@@ -65,11 +60,15 @@ export function useJob(id: string | null) {
  */
 export function useCreateJob() {
   return useSWRMutation<ScrapeJob, Error, string, CreateJobData>(
-    '/api/scrape',
+    '/api/scrape-jobs',
     async (url, { arg }) => {
-      const result = await api.post<ScrapeJob>(`${url}/${arg.websiteId}`)
+      const result = await apiFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(arg)
+      })
       // Invalidate jobs list cache
-      await mutate((key) => typeof key === 'string' && key.startsWith('/api/jobs'))
+      await mutate((key) => typeof key === 'string' && key.startsWith('/api/scrape-jobs'))
       return result
     }
   )

@@ -1,150 +1,103 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { Opportunity } from '@/types'
-import { formatDate, truncateText } from '../../lib/utils'
-
-// Mock data for development
-const mockOpportunities: Opportunity[] = [
-  {
-    id: '1',
-    title: 'AI Research Grant for Healthcare Innovation',
-    description: 'Funding opportunity for artificial intelligence research focused on healthcare applications. This grant supports innovative projects that leverage machine learning and AI technologies to improve patient outcomes, diagnostic accuracy, and treatment effectiveness.',
-    organization: 'National Science Foundation',
-    deadline: '2024-06-15T23:59:59Z',
-    amount: '$500,000',
-    eligibility: 'Universities and research institutions',
-    categories: ['AI', 'Healthcare', 'Research'],
-    location: 'United States',
-    contact_info: 'grants@nsf.gov',
-    application_url: 'https://nsf.gov/apply/ai-healthcare-2024',
-    requirements: [
-      'PhD in relevant field required',
-      'Minimum 3 years research experience',
-      'Institutional affiliation required',
-      'Detailed project proposal'
-    ],
-    site_name: 'NSF Grants Portal',
-    source_url: 'https://nsf.gov/grants/ai-healthcare-2024',
-    crawl_timestamp: '2024-01-15T10:00:00Z',
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z'
-  },
-  {
-    id: '2',
-    title: 'Small Business Innovation Research (SBIR) Phase I',
-    description: 'Early-stage funding for small businesses developing innovative technologies with commercial potential. Focus areas include clean energy, biotechnology, advanced manufacturing, and cybersecurity.',
-    organization: 'Department of Energy',
-    deadline: '2024-05-30T17:00:00Z',
-    amount: '$275,000',
-    eligibility: 'Small businesses with <500 employees',
-    categories: ['SBIR', 'Innovation', 'Technology'],
-    location: 'United States',
-    contact_info: 'sbir@energy.gov',
-    application_url: 'https://energy.gov/sbir/phase1-2024',
-    requirements: [
-      'For-profit small business',
-      'Principal investigator employed by company',
-      'Technology readiness level 2-4',
-      'Commercialization plan required'
-    ],
-    site_name: 'DOE SBIR Portal',
-    source_url: 'https://energy.gov/sbir/opportunities/phase1-2024',
-    crawl_timestamp: '2024-01-16T10:00:00Z',
-    created_at: '2024-01-16T10:00:00Z',
-    updated_at: '2024-01-16T10:00:00Z'
-  },
-  {
-    id: '3',
-    title: 'Climate Change Adaptation Research Fellowship',
-    description: 'Postdoctoral fellowship program supporting research on climate change adaptation strategies, resilience planning, and environmental sustainability solutions.',
-    organization: 'Environmental Protection Agency',
-    deadline: '2024-07-01T23:59:59Z',
-    amount: '$75,000/year',
-    eligibility: 'Recent PhD graduates',
-    categories: ['Climate', 'Environment', 'Fellowship'],
-    location: 'Washington, DC',
-    contact_info: 'fellowships@epa.gov',
-    application_url: 'https://epa.gov/fellowships/climate-adaptation-2024',
-    requirements: [
-      'PhD completed within last 3 years',
-      'Research proposal in climate adaptation',
-      'Two letters of recommendation',
-      'Willingness to relocate to DC area'
-    ],
-    site_name: 'EPA Fellowships',
-    source_url: 'https://epa.gov/fellowships/climate-adaptation-2024',
-    crawl_timestamp: '2024-01-17T10:00:00Z',
-    created_at: '2024-01-17T10:00:00Z',
-    updated_at: '2024-01-17T10:00:00Z'
-  }
-]
+import { useState } from 'react'
+import { useOpportunities, useDeleteOpportunity } from '@/hooks/useOpportunities'
+import { useSites } from '@/hooks/useSites'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { Button } from '@/components/ui/button'
+import { toast } from '@/components/ui/toast'
 
 export default function OpportunitiesPage() {
-  const router = useRouter()
-  const [opportunities] = useState<Opportunity[]>(mockOpportunities)
+  const { data: opportunities, error, isLoading, mutate } = useOpportunities()
+  const { data: sites } = useSites()
+  const { trigger: deleteOpportunity, isMutating: isDeleting } = useDeleteOpportunity()
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [sortBy, setSortBy] = useState<'deadline' | 'amount' | 'created_at'>('deadline')
+  const [selectedWebsite, setSelectedWebsite] = useState<string>('')
 
-  // Memoize unique categories calculation
-  const categories = useMemo(() => {
-    return Array.from(
-      new Set(opportunities.flatMap(opp => opp.categories))
-    ).sort()
-  }, [opportunities])
+  // Create website lookup for display
+  const websiteMap = new Map(sites?.map(site => [site.id, site]) || [])
 
-  // Memoize expensive filtering and sorting operations
-  const filteredOpportunities = useMemo(() => {
-    return opportunities
-      .filter(opp => {
-        const matchesSearch = searchTerm === '' || 
-          opp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          opp.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          opp.organization.toLowerCase().includes(searchTerm.toLowerCase())
-        
-        const matchesCategory = selectedCategory === '' || 
-          opp.categories.includes(selectedCategory)
-        
-        return matchesSearch && matchesCategory
+  // Filter opportunities
+  const filteredOpportunities = opportunities?.filter(opp => {
+    const matchesSearch = !searchTerm || 
+      opp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      opp.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesWebsite = !selectedWebsite || 
+      opp.website_id.toString() === selectedWebsite
+    
+    return matchesSearch && matchesWebsite
+  }) || []
+
+  const handleDelete = async (id: number, title: string) => {
+    if (!confirm(`Are you sure you want to delete "${title}"?`)) return
+    
+    try {
+      await deleteOpportunity(id)
+      mutate()
+      toast({
+        type: 'success',
+        title: 'Opportunity deleted',
+        description: `Deleted "${title}"`
       })
-      .sort((a, b) => {
-        switch (sortBy) {
-          case 'deadline':
-            if (!a.deadline && !b.deadline) return 0
-            if (!a.deadline) return 1
-            if (!b.deadline) return -1
-            return new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-          case 'amount':
-            // Simple amount comparison (would need better parsing in real app)
-            const aAmount = a.amount?.replace(/[^0-9]/g, '') || '0'
-            const bAmount = b.amount?.replace(/[^0-9]/g, '') || '0'
-            return parseInt(bAmount) - parseInt(aAmount)
-          case 'created_at':
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          default:
-            return 0
-        }
+    } catch (error) {
+      console.error('Failed to delete opportunity:', error)
+      toast({
+        type: 'error',
+        title: 'Failed to delete opportunity',
+        description: error instanceof Error ? error.message : 'Unknown error'
       })
-  }, [opportunities, searchTerm, selectedCategory, sortBy])
+    }
+  }
 
-  // Memoize event handlers
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-  }, [])
+  const exportToCsv = () => {
+    if (!opportunities?.length) return
+    
+    const headers = ['Title', 'Description', 'Source URL', 'Website', 'Deadline', 'Amount', 'Scraped At']
+    const csvData = opportunities.map(opp => [
+      opp.title,
+      opp.description || '',
+      opp.source_url,
+      websiteMap.get(opp.website_id)?.name || 'Unknown',
+      opp.deadline || '',
+      opp.amount || '',
+      new Date(opp.scraped_at).toLocaleString()
+    ])
+    
+    const csv = [headers, ...csvData]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n')
+    
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `opportunities-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
-  const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCategory(e.target.value)
-  }, [])
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    )
+  }
 
-  const handleSortChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortBy(e.target.value as 'deadline' | 'amount' | 'created_at')
-  }, [])
-
-  const handleOpportunityClick = useCallback((id: string) => {
-    router.push(`/opportunities/${id}`)
-  }, [router])
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">Failed to load opportunities</p>
+        <button 
+          onClick={() => mutate()}
+          className="mt-4 text-sm text-blue-500 hover:text-blue-700"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -152,121 +105,130 @@ export default function OpportunitiesPage() {
         <div>
           <h1 className="text-3xl font-bold">Opportunities</h1>
           <p className="text-muted-foreground">
-            Discover grants, fellowships, and funding opportunities
+            {opportunities?.length || 0} scraped opportunities
           </p>
         </div>
-        <div className="text-sm text-muted-foreground">
-          {filteredOpportunities.length} of {opportunities.length} opportunities
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            onClick={exportToCsv}
+            disabled={!opportunities?.length}
+          >
+            Export CSV
+          </Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex space-x-4">
         <div className="flex-1">
           <input
             type="text"
             placeholder="Search opportunities..."
             value={searchTerm}
-            onChange={handleSearchChange}
-            className="w-full px-4 py-2 border border-input rounded-md"
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <div className="flex gap-2">
+        <div>
           <select
-            value={selectedCategory}
-            onChange={handleCategoryChange}
-            className="px-3 py-2 border border-input rounded-md"
+            value={selectedWebsite}
+            onChange={(e) => setSelectedWebsite(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
+            <option value="">All websites</option>
+            {sites?.map(site => (
+              <option key={site.id} value={site.id.toString()}>
+                {site.name || site.url}
+              </option>
             ))}
           </select>
-          <select
-            value={sortBy}
-            onChange={handleSortChange}
-            className="px-3 py-2 border border-input rounded-md"
-          >
-            <option value="deadline">Sort by Deadline</option>
-            <option value="amount">Sort by Amount</option>
-            <option value="created_at">Sort by Date Added</option>
-          </select>
         </div>
       </div>
 
-      {/* Opportunities Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredOpportunities.map((opportunity) => (
-          <div
-            key={opportunity.id}
-            className="border rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => handleOpportunityClick(opportunity.id)}
-          >
-            <div className="space-y-3">
-              <div>
-                <h3 className="font-semibold text-lg leading-tight">
-                  {opportunity.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {opportunity.organization}
-                </p>
-              </div>
-
-              <p className="text-sm text-muted-foreground line-clamp-3">
-                {truncateText(opportunity.description, 150)}
-              </p>
-
-              <div className="flex flex-wrap gap-1">
-                {opportunity.categories.slice(0, 3).map((category) => (
-                  <span
-                    key={category}
-                    className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
-                  >
-                    {category}
-                  </span>
-                ))}
-                {opportunity.categories.length > 3 && (
-                  <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded-full">
-                    +{opportunity.categories.length - 3}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center text-sm">
-                <div>
-                  {opportunity.amount && (
-                    <span className="font-medium text-green-600">
-                      {opportunity.amount}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  {opportunity.deadline && (
-                    <span className="text-muted-foreground">
-                      Due: {formatDate(opportunity.deadline)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Opportunities table */}
+      <div className="rounded-md border">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="p-4 text-left font-medium">Title</th>
+              <th className="p-4 text-left font-medium">Website</th>
+              <th className="p-4 text-left font-medium">Amount</th>
+              <th className="p-4 text-left font-medium">Deadline</th>
+              <th className="p-4 text-left font-medium">Scraped</th>
+              <th className="p-4 text-right font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredOpportunities.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                  {opportunities?.length === 0 
+                    ? "No opportunities found yet. Run a scraping job to find opportunities." 
+                    : "No opportunities match your filters."}
+                </td>
+              </tr>
+            ) : (
+              filteredOpportunities.map((opportunity) => (
+                <tr key={opportunity.id} className="border-b">
+                  <td className="p-4">
+                    <div>
+                      <div className="font-medium">{opportunity.title}</div>
+                      {opportunity.description && (
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {opportunity.description.length > 100 
+                            ? `${opportunity.description.substring(0, 100)}...`
+                            : opportunity.description}
+                        </div>
+                      )}
+                      <a 
+                        href={opportunity.source_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:text-blue-700 mt-1 inline-block"
+                      >
+                        View source
+                      </a>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="text-sm">
+                      {websiteMap.get(opportunity.website_id)?.name || 'Unknown'}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="text-sm">
+                      {opportunity.amount || '-'}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="text-sm">
+                      {opportunity.deadline 
+                        ? new Date(opportunity.deadline).toLocaleDateString()
+                        : '-'}
+                    </div>
+                  </td>
+                  <td className="p-4 text-muted-foreground">
+                    <div className="text-sm">
+                      {new Date(opportunity.scraped_at).toLocaleDateString()}
+                    </div>
+                  </td>
+                  <td className="p-4 text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(opportunity.id, opportunity.title)}
+                      disabled={isDeleting}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
-
-      {filteredOpportunities.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-muted-foreground">
-            <div className="text-4xl mb-4">🔍</div>
-            <h3 className="text-lg font-medium mb-2">No opportunities found</h3>
-            <p className="text-sm">
-              {searchTerm || selectedCategory 
-                ? 'Try adjusting your search criteria'
-                : 'No opportunities have been crawled yet'
-              }
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 } 

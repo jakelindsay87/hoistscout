@@ -147,21 +147,21 @@ function JobsPageContent() {
                     {job.completed_at ? new Date(job.completed_at).toLocaleString() : '-'}
                   </td>
                   <td className="p-4 text-right">
-                    {job.status === 'completed' && job.result_path ? (
+                    {job.status === 'completed' && job.raw_data ? (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          window.location.href = `/results?job=${job.id}`
+                          window.location.href = `/opportunities?job=${job.id}`
                         }}
                       >
                         View Results
                       </Button>
-                    ) : job.status === 'failed' && job.error ? (
+                    ) : job.status === 'failed' && job.error_message ? (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => alert(`Error: ${job.error}`)}
+                        onClick={() => alert(`Error: ${job.error_message}`)}
                       >
                         View Error
                       </Button>

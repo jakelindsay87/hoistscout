@@ -49,4 +49,24 @@ class ScrapeJobRead(ScrapeJobBase):
     created_at: datetime
     updated_at: datetime
 
+class OpportunityBase(SQLModel):
+    title: str
+    description: Optional[str] = None
+    source_url: str
+    website_id: int = Field(foreign_key="website.id")
+    job_id: int = Field(foreign_key="scrapejob.id")
+    deadline: Optional[datetime] = None
+    amount: Optional[str] = None
+
+class Opportunity(OpportunityBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    scraped_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class OpportunityCreate(OpportunityBase):
+    pass
+
+class OpportunityRead(OpportunityBase):
+    id: int
+    scraped_at: datetime
+
  
