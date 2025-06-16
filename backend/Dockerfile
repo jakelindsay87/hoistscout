@@ -1,43 +1,50 @@
+# Backend Dockerfile for FastAPI with Playwright
 FROM python:3.11-slim
 
-# Set working directory
-WORKDIR /app
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    git \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy pyproject.toml and poetry.lock
-COPY backend/pyproject.toml backend/poetry.lock* ./
+# Install Poetry
+RUN pip install poetry==1.8.3
 
-# Install Poetry with specific version for consistency
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir poetry==1.7.1 && \
-    poetry config virtualenvs.create false && \
-    poetry install --no-root --no-interaction --no-ansi || \
-    (poetry lock --no-update && poetry install --no-root --no-interaction --no-ansi)
+# Configure Poetry
+ENV POETRY_NO_INTERACTION=1
+ENV POETRY_VENV_IN_PROJECT=1
+ENV POETRY_CACHE_DIR=/tmp/poetry_cache
 
-# Install Playwright and browsers
-RUN playwright install --with-deps chromium
+# Set work directory
+WORKDIR /app
 
-# Copy application code
-COPY backend/ .
+# Copy Poetry files
+COPY pyproject.toml poetry.lock ./
 
-# Copy and make entrypoint executable
-COPY backend/api_entrypoint.sh ./
-RUN chmod +x api_entrypoint.sh
+# Install dependencies
+RUN poetry install --no-dev && rm -rf $POETRY_CACHE_DIR
 
-# Create data directory
-RUN mkdir -p /data
+# Install Playwright browsers
+RUN poetry run playwright install chromium --with-deps
+
+# Copy source code
+COPY . .
+
+# Create data directory for scraping results
+RUN mkdir -p /app/data
 
 # Expose port
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Use the entrypoint script
-CMD ["./api_entrypoint.sh"] 
+# Run the application
+CMD ["poetry", "run", "uvicorn", "hoistscraper.main:app", "--host", "0.0.0.0", "--port", "8000"]

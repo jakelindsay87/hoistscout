@@ -42,8 +42,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/hoistscraper
       REDIS_URL: redis://redis:6379/0
@@ -61,8 +61,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: ./frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:
@@ -86,7 +86,6 @@ services:
         condition: service_healthy
     volumes:
       - scraper_data:/data
-    command: ["./worker_entrypoint.sh"]
 
 volumes:
   postgres_data:
