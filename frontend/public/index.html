@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HoistScraper</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        function App() {
+            const [websites, setWebsites] = useState([]);
+            const [jobs, setJobs] = useState([]);
+            const [loading, setLoading] = useState(true);
+            
+            const API_URL = 'http://localhost:8000';
+            
+            useEffect(() => {
+                fetchData();
+            }, []);
+            
+            async function fetchData() {
+                try {
+                    const [websitesRes, jobsRes] = await Promise.all([
+                        fetch(`${API_URL}/api/websites`),
+                        fetch(`${API_URL}/api/jobs`)
+                    ]);
+                    
+                    setWebsites(await websitesRes.json());
+                    setJobs(await jobsRes.json());
+                    setLoading(false);
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    setLoading(false);
+                }
+            }
+            
+            async function addWebsite() {
+                const url = prompt('Enter website URL:');
+                if (!url) return;
+                
+                try {
+                    const response = await fetch(`${API_URL}/api/websites`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url, name: url })
+                    });
+                    
+                    if (response.ok) {
+                        fetchData();
+                    }
+                } catch (error) {
+                    console.error('Error adding website:', error);
+                }
+            }
+            
+            async function triggerScrape(websiteId) {
+                try {
+                    const response = await fetch(`${API_URL}/api/scrape/${websiteId}`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        alert('Scraping job started!');
+                        fetchData();
+                    }
+                } catch (error) {
+                    console.error('Error triggering scrape:', error);
+                }
+            }
+            
+            return (
+                <div className="min-h-screen bg-gray-100">
+                    <nav className="bg-white shadow">
+                        <div className="container mx-auto px-4 py-4">
+                            <h1 className="text-2xl font-bold text-blue-600">HoistScraper</h1>
+                        </div>
+                    </nav>
+                    
+                    <main className="container mx-auto px-4 py-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-semibold">Websites</h2>
+                                    <button
+                                        onClick={addWebsite}
+                                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                                    >
+                                        Add Website
+                                    </button>
+                                </div>
+                                
+                                {loading ? (
+                                    <p>Loading...</p>
+                                ) : websites.length === 0 ? (
+                                    <p className="text-gray-500">No websites added yet</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {websites.map(site => (
+                                            <div key={site.id} className="border rounded p-3">
+                                                <p className="font-medium">{site.name || site.url}</p>
+                                                <p className="text-sm text-gray-600">{site.url}</p>
+                                                <button
+                                                    onClick={() => triggerScrape(site.id)}
+                                                    className="mt-2 text-blue-500 hover:text-blue-700 text-sm"
+                                                >
+                                                    Trigger Scrape
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h2 className="text-xl font-semibold mb-4">Recent Jobs</h2>
+                                
+                                {loading ? (
+                                    <p>Loading...</p>
+                                ) : jobs.length === 0 ? (
+                                    <p className="text-gray-500">No jobs yet</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {jobs.slice(0, 5).map(job => (
+                                            <div key={job.id} className="border rounded p-3">
+                                                <p className="font-medium">Job #{job.id}</p>
+                                                <p className="text-sm">
+                                                    Status: <span className={
+                                                        job.status === 'completed' ? 'text-green-600' :
+                                                        job.status === 'failed' ? 'text-red-600' :
+                                                        'text-yellow-600'
+                                                    }>{job.status}</span>
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {new Date(job.created_at).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        
+                        <div className="mt-6 bg-white rounded-lg shadow p-6">
+                            <h2 className="text-xl font-semibold mb-4">Quick Links</h2>
+                            <div className="space-x-4">
+                                <a href={`${API_URL}/docs`} target="_blank" className="text-blue-500 hover:text-blue-700">
+                                    API Documentation
+                                </a>
+                                <a href={`${API_URL}/health`} target="_blank" className="text-blue-500 hover:text-blue-700">
+                                    Health Check
+                                </a>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
