@@ -1,0 +1,203 @@
+url,name,description
+https://www.grants.gov,Grants.gov,Federal government grants portal
+https://www.nsf.gov/funding,National Science Foundation,NSF funding opportunities
+https://www.nih.gov/grants-funding,National Institutes of Health,NIH grants and funding
+https://www.ed.gov/fund/grant/find/edlite-forecast.html,Department of Education,Federal education grants
+https://www.nea.gov/grants,National Endowment for the Arts,Arts grants and funding
+https://www.neh.gov/grants,National Endowment for the Humanities,Humanities grants
+https://www.imls.gov/grants,Institute of Museum and Library Services,Museum and library grants
+https://www.epa.gov/grants,Environmental Protection Agency,Environmental grants
+https://www.samhsa.gov/grants,SAMHSA,Substance abuse and mental health grants
+https://www.acf.hhs.gov/grants,Administration for Children and Families,Family and children services grants
+https://foundationcenter.org,Foundation Center,Private foundation grants database
+https://www.gatesfoundation.org/about/how-we-work/grants,Gates Foundation,Bill & Melinda Gates Foundation grants
+https://www.fordfoundation.org/work/our-grants,Ford Foundation,Social justice and equity grants
+https://www.macfound.org/programs,MacArthur Foundation,Creative and social change grants
+https://www.rwjf.org/en/how-we-work/grants-explorer,Robert Wood Johnson Foundation,Health and healthcare grants
+https://kresge.org/our-grantmaking,Kresge Foundation,Urban development and education grants
+https://www.packard.org/grants-and-investments,Packard Foundation,Children and environmental grants
+https://www.hewlett.org/grants,Hewlett Foundation,Education and environment grants
+https://www.moore.org/grants,Moore Foundation,Science and environmental conservation
+https://sloan.org/programs,Sloan Foundation,Science and technology grants
+https://www.arnoldfoundation.org/grants,Arnold Foundation,Criminal justice and education reform
+https://www.bloomberg.org/program,Bloomberg Philanthropies,Urban innovation and public health
+https://www.rockefellerfoundation.org/grants,Rockefeller Foundation,Equity and resilience grants
+https://www.mellon.org/grants,Mellon Foundation,Arts and humanities grants
+https://www.knightfoundation.org/grants,Knight Foundation,Media and journalism grants
+https://www.carnegie.org/grants,Carnegie Corporation,Education and democracy grants
+https://www.templeton.org/grants,Templeton Foundation,Science and spirituality research
+https://www.lilly.org/grants,Lilly Endowment,Religion and community development
+https://www.kellogg.org/grants,Kellogg Foundation,Children and families grants
+https://www.caseyfoods.org/grants,Annie E. Casey Foundation,Child welfare and family support
+https://www.surdna.org/grants,Surdna Foundation,Social justice and sustainability
+https://www.wallacefoundation.org/grants,Wallace Foundation,Arts and education leadership
+https://www.whiting.org/grants,Whiting Foundation,Literary and humanities grants
+https://www.guggenheim.org/grants,Guggenheim Foundation,Fellowship grants for artists
+https://www.macarthurfound.org,MacArthur Fellows Program,Genius grants program
+https://www.pew.org/grants,Pew Charitable Trusts,Public policy research grants
+https://www.cof.org/foundation-directory,Council on Foundations,Foundation directory and resources
+https://www.nysca.org/grants,New York State Council on the Arts,NY arts organization grants
+https://www.arts.ca.gov/grants,California Arts Council,California arts grants
+https://www.mass.gov/grants,Massachusetts Cultural Council,MA cultural grants
+https://www.arts.state.tx.us/grants,Texas Commission on the Arts,Texas arts grants
+https://www.arts.illinois.gov/grants,Illinois Arts Council,Illinois arts funding
+https://www.arts.wa.gov/grants,Washington State Arts Commission,WA arts grants
+https://www.oregon.gov/arts/grants,Oregon Arts Commission,Oregon cultural grants
+https://www.arts.state.fl.us/grants,Florida Arts Council,Florida arts funding
+https://www.arts.ohio.gov/grants,Ohio Arts Council,Ohio arts grants
+https://www.michigan.gov/arts/grants,Michigan Arts Council,Michigan cultural funding
+https://www.globalgiving.org/nonprofits,GlobalGiving,International nonprofit funding platform
+https://www.gofundme.com/nonprofits,GoFundMe Charity,Crowdfunding for nonprofits
+https://www.crowdrise.com/nonprofits,CrowdRise,Nonprofit fundraising platform
+https://www.justgiving.com/nonprofits,JustGiving,UK-based charity platform
+https://www.change.org/petitions,Change.org,Social change campaigns
+https://www.indiegogo.com/nonprofits,Indiegogo for Good,Crowdfunding for social causes
+https://www.kickstarter.com/arts,Kickstarter Arts,Creative project funding
+https://www.patreon.com/creators,Patreon,Ongoing creator support
+https://experiment.com,Experiment.com,Scientific research crowdfunding
+https://www.crowdfunder.com/social,Crowdfunder,Social enterprise funding
+https://www.seedinvest.com/social,SeedInvest,Impact investment platform
+https://www.kiva.org/lend,Kiva,Microfinance lending platform
+https://www.accion.org/programs,Accion,Microfinance and small business
+https://www.grameen.org/programs,Grameen Foundation,Poverty alleviation programs
+https://www.skoll.org/grants,Skoll Foundation,Social entrepreneurship grants
+https://www.ashoka.org/funding,Ashoka,Social innovation fellowships
+https://www.echoing-green.org/fellowship,Echoing Green,Social entrepreneur fellowships
+https://www.schwabfound.org/grants,Schwab Foundation,Social innovation support
+https://www.draper-richards.org/apply,Draper Richards Kaplan,Social enterprise funding
+https://www.mulago.org/apply,Mulago Foundation,Scalable poverty solutions
+https://www.omidyar.com/grants,Omidyar Network,Social impact investments
+https://www.lumina.org/grants,Lumina Foundation,Higher education access grants
+https://www.dosomething.org/grants,DoSomething.org,Youth action campaign grants
+https://www.youthservice.org/grants,Youth Service America,Youth volunteer project grants
+https://www.pointsoflight.org/grants,Points of Light,Volunteer service grants
+https://www.nationalservice.gov/grants,AmeriCorps,National service program grants
+https://www.peacecorps.gov/grants,Peace Corps,International service grants
+https://www.habitat.org/grants,Habitat for Humanity,Housing assistance programs
+https://www.redcross.org/grants,American Red Cross,Disaster relief funding
+https://www.savethechildren.org/grants,Save the Children,Child welfare programs
+https://www.care.org/grants,CARE International,Poverty and disaster relief
+https://www.oxfam.org/grants,Oxfam,International development grants
+https://www.mercycorps.org/grants,Mercy Corps,Humanitarian aid programs
+https://www.wvi.org/grants,World Vision,Child sponsorship and aid
+https://www.unicef.org/grants,UNICEF,Children's emergency relief
+https://www.who.int/grants,World Health Organization,Global health initiatives
+https://www.undp.org/funding,UN Development Programme,Sustainable development funding
+https://www.worldbank.org/grants,World Bank,International development finance
+https://www.usaid.gov/grants,USAID,International development assistance
+https://www.dfid.gov.uk/grants,UK Aid,British international development
+https://www.giz.de/en/grants,GIZ,German development cooperation
+https://www.jica.go.jp/english/grants,JICA,Japanese development assistance
+https://www.sida.se/en/grants,Sida,Swedish development cooperation
+https://www.norad.no/en/grants,Norad,Norwegian development aid
+https://www.danida.dk/en/grants,Danida,Danish development cooperation
+https://www.afd.fr/en/grants,AFD,French development agency
+https://www.acdi-cida.gc.ca/grants,Global Affairs Canada,Canadian development aid
+https://www.ausaid.gov.au/grants,Australian Aid,Australian development assistance
+https://www.nzaid.govt.nz/grants,New Zealand Aid,NZ development cooperation
+https://ec.europa.eu/europeaid/funding,EuropeAid,EU development funding
+https://www.thegef.org/grants,Global Environment Facility,Environmental project funding
+https://www.greenclimate.fund/projects,Green Climate Fund,Climate change mitigation
+https://www.adaptation-fund.org/apply,Adaptation Fund,Climate adaptation projects
+https://www.conservation.org/grants,Conservation International,Biodiversity conservation
+https://www.worldwildlife.org/grants,World Wildlife Fund,Wildlife conservation grants
+https://www.nature.org/grants,The Nature Conservancy,Land and water conservation
+https://www.audubon.org/grants,National Audubon Society,Bird conservation programs
+https://www.sierraclub.org/grants,Sierra Club Foundation,Environmental activism grants
+https://www.nrdc.org/grants,Natural Resources Defense Council,Environmental advocacy
+https://www.earthjustice.org/grants,Earthjustice,Environmental law support
+https://www.edf.org/grants,Environmental Defense Fund,Science-based environmental solutions
+https://www.pewtrusts.org/environment,Pew Environment,Marine and land conservation
+https://www.oceanconservancy.org/grants,Ocean Conservancy,Ocean protection programs
+https://www.surfrider.org/grants,Surfrider Foundation,Coastal protection grants
+https://www.riverkeeper.org/grants,Riverkeeper,Clean water advocacy
+https://www.waterkeeper.org/grants,Waterkeeper Alliance,Local water protection
+https://www.rainforest-alliance.org/grants,Rainforest Alliance,Sustainable agriculture
+https://www.fairtrade.org/grants,Fairtrade Foundation,Fair trade certification
+https://www.usgbc.org/grants,US Green Building Council,Sustainable building grants
+https://www.solarcity.org/grants,Solar Foundation,Solar energy deployment
+https://www.windenergy.org/grants,Wind Energy Foundation,Wind power development
+https://www.geothermal.org/grants,Geothermal Association,Geothermal energy projects
+https://www.bioenergy.org/grants,Bioenergy Association,Biomass energy funding
+https://www.hydrogen.org/grants,Hydrogen Council,Hydrogen technology development
+https://www.cleantech.org/grants,Cleantech Group,Clean technology innovation
+https://www.greenbiz.org/grants,GreenBiz,Sustainable business programs
+https://www.bsr.org/grants,Business for Social Responsibility,Corporate sustainability
+https://www.unglobalcompact.org/grants,UN Global Compact,Corporate responsibility
+https://www.bcorporation.org/grants,B Lab,Benefit corporation support
+https://www.socialenterprise.org/grants,Social Enterprise Alliance,Social business funding
+https://www.netimpact.org/grants,Net Impact,Social impact careers
+https://www.idealist.org/grants,Idealist,Nonprofit job and volunteer matching
+https://www.volunteermatch.org/grants,VolunteerMatch,Volunteer program support
+https://www.charitynavigator.org/grants,Charity Navigator,Nonprofit evaluation resources
+https://www.guidestar.org/grants,GuideStar,Nonprofit transparency platform
+https://www.give.org/grants,BBB Wise Giving,Charity accountability
+https://www.charitywatch.org/grants,CharityWatch,Nonprofit watchdog resources
+https://www.givewell.org/grants,GiveWell,Effective altruism research
+https://www.givingcompass.org/grants,Giving Compass,Philanthropic guidance
+https://www.philanthropyroundtable.org,Philanthropy Roundtable,Donor education resources
+https://www.afpnet.org/grants,Association of Fundraising Professionals,Fundraising best practices
+https://www.councilofnonprofits.org/grants,National Council of Nonprofits,Nonprofit advocacy
+https://www.independentsector.org/grants,Independent Sector,Nonprofit leadership
+https://www.asaecenter.org/grants,ASAE,Association management resources
+https://www.boardsource.org/grants,BoardSource,Nonprofit governance support
+https://www.bridgespan.org/grants,Bridgespan Group,Nonprofit consulting
+https://www.mckinsey.org/grants,McKinsey Social Initiative,Pro bono consulting
+https://www.bcg.org/grants,BCG Social Impact,Management consulting for nonprofits
+https://www.bain.org/grants,Bain Social Impact,Strategy consulting for good
+https://www.deloitte.org/grants,Deloitte Foundation,Professional services support
+https://www.pwc.org/grants,PwC Foundation,Accounting and advisory support
+https://www.ey.org/grants,EY Foundation,Financial services for nonprofits
+https://www.kpmg.org/grants,KPMG Foundation,Audit and tax support
+https://www.taproot.org/grants,Taproot Foundation,Pro bono professional services
+https://www.catchafire.org/grants,Catchafire,Skills-based volunteering
+https://www.probono.net/grants,Pro Bono Net,Legal services for nonprofits
+https://www.natlawreview.org/grants,National Law Review,Legal resources for charities
+https://www.techsoup.org/grants,TechSoup,Technology for nonprofits
+https://www.nten.org/grants,NTEN,Nonprofit technology network
+https://www.aspirationtech.org/grants,Aspiration,Tech capacity building
+https://www.code.org/grants,Code.org,Computer science education
+https://www.mozilla.org/grants,Mozilla Foundation,Open internet advocacy
+https://www.wikimedia.org/grants,Wikimedia Foundation,Free knowledge projects
+https://www.creativecommons.org/grants,Creative Commons,Open licensing support
+https://www.archive.org/grants,Internet Archive,Digital preservation
+https://www.eff.org/grants,Electronic Frontier Foundation,Digital rights advocacy
+https://www.freepress.net/grants,Free Press,Media justice campaigns
+https://www.knightfdn.org/grants,Knight Media Innovation,Journalism innovation
+https://www.nieman.org/grants,Nieman Foundation,Journalism excellence
+https://www.poynter.org/grants,Poynter Institute,Media literacy training
+https://www.cjr.org/grants,Columbia Journalism Review,Media criticism and analysis
+https://www.propublica.org/grants,ProPublica,Investigative journalism
+https://www.publicintegrity.org/grants,Center for Public Integrity,Accountability reporting
+https://www.revealnews.org/grants,Reveal,Investigative reporting
+https://www.motherjones.org/grants,Mother Jones,Independent journalism
+https://www.thenation.org/grants,The Nation Institute,Progressive media
+https://www.prwatch.org/grants,PR Watch,Corporate accountability
+https://www.commoncause.org/grants,Common Cause,Democracy reform advocacy
+https://www.brennancenter.org/grants,Brennan Center,Justice and democracy
+https://www.demos.org/grants,Demos,Economic and political equity
+https://www.fairvote.org/grants,FairVote,Electoral reform advocacy
+https://www.lwv.org/grants,League of Women Voters,Civic engagement
+https://www.rockthevote.org/grants,Rock the Vote,Youth voter registration
+https://www.headcount.org/grants,HeadCount,Music and democracy
+https://www.declareyourself.org/grants,Declare Yourself,Voter empowerment
+https://www.vote.org/grants,Vote.org,Voter registration technology
+https://www.turbovote.org/grants,TurboVote,Voting made easy
+https://www.ballotpedia.org/grants,Ballotpedia,Nonpartisan election info
+https://www.votesmart.org/grants,Vote Smart,Political candidate research
+https://www.opensecrets.org/grants,OpenSecrets,Campaign finance transparency
+https://www.maplight.org/grants,MapLight,Money in politics research
+https://www.commoncause.org/grants,Common Cause,Campaign finance reform
+https://www.citizensunited.org/grants,Citizens United,Political documentary funding
+https://www.endcitizensunited.org/grants,End Citizens United,Campaign finance reform
+https://www.represent.us/grants,Represent.Us,Anti-corruption campaigns
+https://www.sunlightfoundation.org/grants,Sunlight Foundation,Government transparency
+https://www.foiamachine.org/grants,FOIA Machine,Freedom of information
+https://www.muckrock.org/grants,MuckRock,Public records requests
+https://www.govtrack.us/grants,GovTrack,Legislative tracking
+https://www.opencongress.org/grants,OpenCongress,Congressional transparency
+https://www.followthemoney.org/grants,Follow the Money,State campaign finance
+https://www.commoncause.org/states,Common Cause State,State-level reform
+https://www.ncsl.org/grants,NCSL,State legislature resources
+https://www.nga.org/grants,National Governors,State executive resources
+https://www.usmayors.org/grants,US Conference of Mayors,City government support

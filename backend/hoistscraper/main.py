@@ -5,13 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from typing import List
 from . import models, db
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 import logging
 import os
 from contextlib import asynccontextmanager
 from sqlalchemy.exc import IntegrityError
 from pathlib import Path
-from routers import ingest, jobs
+# from routers import ingest, jobs  # Removed - routers deleted
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -92,7 +92,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000", 
+        "http://localhost:3000",
+        "http://localhost:3001", 
         "http://frontend:3000",
         "https://hoistscraper-fe.onrender.com"
     ],
@@ -102,8 +103,8 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(ingest.router)
-app.include_router(jobs.router)
+# app.include_router(ingest.router)  # Removed - routers deleted
+# app.include_router(jobs.router)
 
 @app.get("/")
 async def root():
@@ -159,7 +160,7 @@ def update_website(website_id: int, website: models.WebsiteCreate, session: Sess
     for key, value in website_data.items():
         setattr(db_website, key, value)
     
-    db_website.updated_at = datetime.now(UTC)
+    db_website.updated_at = datetime.now(timezone.utc)
 
     try:
         session.add(db_website)
@@ -221,7 +222,7 @@ def update_scrape_job(job_id: int, job: models.ScrapeJobCreate, session: Session
     for key, value in job_data.items():
         setattr(db_job, key, value)
     
-    db_job.updated_at = datetime.now(UTC)
+    db_job.updated_at = datetime.now(timezone.utc)
 
     session.add(db_job)
     session.commit()
