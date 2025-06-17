@@ -1,16 +1,60 @@
 """Queue management with RQ and Redis."""
 import os
 import logging
+import time
 from typing import Optional
-from redis import Redis
+from redis import Redis, ConnectionError
 from rq import Queue
 from rq.job import Job
 
 logger = logging.getLogger(__name__)
 
-# Redis connection
-redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-redis_conn = Redis.from_url(redis_url)
+
+def create_redis_connection(max_retries: int = 5) -> Redis:
+    """Create Redis connection with retry logic."""
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    redis_host = os.getenv("REDIS_HOST", "localhost")
+    redis_port = int(os.getenv("REDIS_PORT", "6379"))
+    
+    for attempt in range(max_retries):
+        try:
+            # Try URL first, then host/port
+            if redis_url != "redis://localhost:6379/0":
+                redis_conn = Redis.from_url(
+                    redis_url,
+                    decode_responses=True,
+                    socket_connect_timeout=5,
+                    socket_timeout=5,
+                    retry_on_timeout=True
+                )
+            else:
+                redis_conn = Redis(
+                    host=redis_host,
+                    port=redis_port,
+                    decode_responses=True,
+                    socket_connect_timeout=5,
+                    socket_timeout=5,
+                    retry_on_timeout=True
+                )
+            
+            # Test connection
+            redis_conn.ping()
+            logger.info(f"Connected to Redis at {redis_host}:{redis_port}")
+            return redis_conn
+            
+        except ConnectionError as e:
+            logger.warning(f"Redis connection attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                sleep_time = 2 ** attempt  # Exponential backoff
+                logger.info(f"Retrying in {sleep_time} seconds...")
+                time.sleep(sleep_time)
+            else:
+                logger.error("All Redis connection attempts failed")
+                raise
+
+
+# Redis connection with retry logic
+redis_conn = create_redis_connection()
 
 # Create default queue
 default_queue = Queue(connection=redis_conn)
