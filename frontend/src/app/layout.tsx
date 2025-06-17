@@ -1,15 +1,16 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { Inter } from 'next/font/google'
 import { ErrorBoundaryClass } from '@/components/ErrorBoundary'
 import { ToastContainer } from '@/components/ui/toast'
+import { Sidebar } from '@/components/layout/Sidebar'
+import { Header } from '@/components/layout/Header'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'HoistScraper',
-  description: 'AI-powered web scraping platform for opportunities and grants',
+  title: 'HoistScraper - Australian Grant Discovery Platform',
+  description: 'AI-powered platform for discovering Australian grants and funding opportunities',
 }
 
 export default function RootLayout({
@@ -18,26 +19,26 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <div className="min-h-screen bg-background">
-          <nav className="border-b">
-            <div className="container mx-auto px-4 py-4">
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-primary">HoistScraper</h1>
-                <div className="flex space-x-4">
-                  <Link href="/sites" className="text-foreground hover:text-primary">Sites</Link>
-                  <Link href="/jobs" className="text-foreground hover:text-primary">Jobs</Link>
-                  <Link href="/results" className="text-foreground hover:text-primary">Results</Link>
-                </div>
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} h-full bg-slate-50 antialiased`}>
+        <div className="flex h-full">
+          {/* Sidebar */}
+          <Sidebar />
+          
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col ml-64">
+            {/* Header */}
+            <Header />
+            
+            {/* Main Content Area */}
+            <main className="flex-1 overflow-auto">
+              <div className="px-6 py-6">
+                <ErrorBoundaryClass>
+                  {children}
+                </ErrorBoundaryClass>
               </div>
-            </div>
-          </nav>
-          <main className="container mx-auto px-4 py-8">
-            <ErrorBoundaryClass>
-              {children}
-            </ErrorBoundaryClass>
-          </main>
+            </main>
+          </div>
         </div>
         <ToastContainer />
       </body>

@@ -1,118 +1,110 @@
 'use client'
 
-import Link from 'next/link'
 import { useStats } from '@/hooks/useStats'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { StatsCard } from '@/components/dashboard/StatsCard'
+import { QuickActions } from '@/components/dashboard/QuickActions'
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
+import { SystemStatus } from '@/components/dashboard/SystemStatus'
+import { 
+  GlobeAltIcon, 
+  DocumentTextIcon, 
+  BriefcaseIcon, 
+  CalendarIcon 
+} from '@heroicons/react/24/outline'
 
-export default function Home() {
+export default function Dashboard() {
   const { data: stats, error, isLoading } = useStats()
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="text-red-800">
+          <h3 className="font-medium">Unable to load dashboard</h3>
+          <p className="text-sm mt-1">Failed to connect to the API. Please check your connection and try again.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to HoistScraper</h1>
-        <p className="text-lg text-muted-foreground mb-8">
-          AI-powered web scraping platform for Australian grants and opportunities
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
+        <p className="text-slate-600 mt-1">
+          Monitor your Australian grant discovery platform
         </p>
       </div>
 
       {/* Stats Grid */}
-      {isLoading ? (
-        <div className="flex items-center justify-center h-32">
-          <LoadingSpinner />
-        </div>
-      ) : error ? (
-        <div className="text-center text-red-500">
-          Failed to load statistics
-        </div>
-      ) : stats ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg border p-6">
-            <div className="text-2xl font-bold text-blue-600">{stats.total_sites}</div>
-            <div className="text-sm text-muted-foreground">Grant Sites Configured</div>
-          </div>
-          <div className="bg-white rounded-lg border p-6">
-            <div className="text-2xl font-bold text-green-600">{stats.total_opportunities}</div>
-            <div className="text-sm text-muted-foreground">Opportunities Found</div>
-          </div>
-          <div className="bg-white rounded-lg border p-6">
-            <div className="text-2xl font-bold text-purple-600">{stats.total_jobs}</div>
-            <div className="text-sm text-muted-foreground">Scraping Jobs Run</div>
-          </div>
-          <div className="bg-white rounded-lg border p-6">
-            <div className="text-2xl font-bold text-orange-600">{stats.jobs_this_week}</div>
-            <div className="text-sm text-muted-foreground">Jobs This Week</div>
-          </div>
-        </div>
-      ) : null}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="Grant Sites"
+          value={stats?.total_sites || 0}
+          change={null}
+          icon={GlobeAltIcon}
+          color="blue"
+        />
+        <StatsCard
+          title="Opportunities"
+          value={stats?.total_opportunities || 0}
+          change={null}
+          icon={DocumentTextIcon}
+          color="green"
+        />
+        <StatsCard
+          title="Total Jobs"
+          value={stats?.total_jobs || 0}
+          change={null}
+          icon={BriefcaseIcon}
+          color="purple"
+        />
+        <StatsCard
+          title="This Week"
+          value={stats?.jobs_this_week || 0}
+          change={null}
+          icon={CalendarIcon}
+          color="orange"
+        />
+      </div>
 
-      {/* Last Scrape Info */}
+      {/* Last Scrape Banner */}
       {stats?.last_scrape && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="text-sm">
-            <span className="font-medium">Last scraping run:</span>{' '}
-            {new Date(stats.last_scrape).toLocaleString()}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-800">
+                <span className="font-medium">Last scraping run:</span>{' '}
+                {new Date(stats.last_scrape).toLocaleString()}
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Quick Actions */}
-      <div className="text-center space-y-4">
-        <h2 className="text-xl font-semibold">Quick Actions</h2>
-        <div className="flex flex-wrap justify-center gap-4">
-          <Link 
-            href="/opportunities" 
-            className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            View Opportunities
-          </Link>
-          <Link 
-            href="/jobs" 
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-6 py-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-          >
-            Manage Jobs
-          </Link>
-          <Link 
-            href="/sites" 
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-6 py-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-          >
-            Manage Sites
-          </Link>
-        </div>
-      </div>
-
-      {/* Status Cards */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="border rounded-lg p-6">
-          <h3 className="font-semibold mb-4">System Status</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Backend API</span>
-              <span className="text-green-600">✓ Online</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Australian Grant Sites</span>
-              <span className="text-green-600">✓ 244 Configured</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Database</span>
-              <span className="text-green-600">✓ Connected</span>
-            </div>
-          </div>
+      {/* Main Content Grid */}
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* Left Column - Quick Actions */}
+        <div className="lg:col-span-1">
+          <QuickActions />
         </div>
 
-        <div className="border rounded-lg p-6">
-          <h3 className="font-semibold mb-4">Recent Activity</h3>
-          <div className="text-sm text-muted-foreground">
-            {stats?.total_opportunities === 0 ? (
-              <p>No opportunities scraped yet. Start a scraping job to begin collecting grant opportunities.</p>
-            ) : (
-              <p>
-                Found {stats?.total_opportunities} opportunities across {stats?.total_sites} Australian grant sites.
-                {stats?.jobs_this_week > 0 && ` ${stats.jobs_this_week} jobs completed this week.`}
-              </p>
-            )}
-          </div>
+        {/* Right Column - Status & Activity */}
+        <div className="lg:col-span-2 space-y-6">
+          <SystemStatus stats={stats} />
+          <ActivityFeed stats={stats} />
         </div>
       </div>
     </div>
