@@ -97,6 +97,8 @@ services:
     repo: https://github.com/jakelindsay87/hoistscraper
     dockerfilePath: ./frontend/Dockerfile
     # Remove buildFilter to ensure all changes trigger rebuilds
+    dockerCommand: ""
+    buildCommand: docker build --build-arg NEXT_PUBLIC_API_URL=https://hoistscraper.onrender.com -f ./frontend/Dockerfile .
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://hoistscraper.onrender.com

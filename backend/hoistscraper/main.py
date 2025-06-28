@@ -21,6 +21,7 @@ from .monitoring import (
     update_active_jobs, update_websites_metrics, update_worker_health,
     update_database_connections, update_ollama_status
 )
+from .security import security_middleware, require_admin_auth, block_in_production
 import time
 
 # Configure logging from environment
@@ -120,11 +121,17 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Failed to stop simple job queue: {e}")
 
+# Disable docs in production
+docs_url = "/docs" if os.getenv("RENDER") != "true" else None
+redoc_url = "/redoc" if os.getenv("RENDER") != "true" else None
+
 app = FastAPI(
     title="HoistScraper API",
     description="Job opportunity scraping and analysis API",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url=docs_url,
+    redoc_url=redoc_url
 )
 
 # Configure middleware
@@ -132,6 +139,11 @@ app = FastAPI(
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware, requests_per_minute=100)
 app.add_middleware(LoggingMiddleware)
+
+# Add security middleware
+@app.middleware("http")
+async def apply_security_middleware(request, call_next):
+    return await security_middleware(request, call_next)
 
 # Add metrics middleware
 @app.middleware("http")
@@ -168,8 +180,16 @@ app.add_middleware(
 )
 
 # Include routers
-from .routers import credentials
+from .routers import credentials, admin, debug
 app.include_router(credentials.router)
+
+# Include admin and debug routers
+# Admin router requires authentication
+app.include_router(admin.router)
+
+# Debug router is automatically disabled in production
+if os.getenv("RENDER") != "true":
+    app.include_router(debug.router)
 
 @app.get("/")
 async def root():

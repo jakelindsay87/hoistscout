@@ -1,5 +1,5 @@
 """API routers module."""
 
-from . import credentials
+from . import credentials, admin, debug
 
-__all__ = ["credentials"]
+__all__ = ["credentials", "admin", "debug"]
