@@ -1,0 +1,156 @@
+groups:
+  - name: hoistscraper_alerts
+    interval: 30s
+    rules:
+      # Worker Health Alerts
+      - alert: WorkerDown
+        expr: hoistscraper_worker_health_status == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HoistScraper worker is down"
+          description: "The scraping worker has been unhealthy for more than 5 minutes"
+
+      # Database Connection Alerts
+      - alert: HighDatabaseConnections
+        expr: hoistscraper_database_connections_active > 50
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of database connections"
+          description: "Database connections exceed 50 for more than 10 minutes (current: {{ $value }})"
+
+      - alert: DatabaseConnectionExhaustion
+        expr: hoistscraper_database_connections_active > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "Database connections exceed 90 (current: {{ $value }})"
+
+      # Scraping Performance Alerts
+      - alert: HighScrapeFailureRate
+        expr: |
+          (
+            sum(rate(hoistscraper_scrape_jobs_total{status="failed"}[5m]))
+            /
+            sum(rate(hoistscraper_scrape_jobs_total[5m]))
+          ) > 0.25
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High scrape failure rate"
+          description: "More than 25% of scrape jobs are failing (current: {{ $value | humanizePercentage }})"
+
+      - alert: CriticalScrapeFailureRate
+        expr: |
+          (
+            sum(rate(hoistscraper_scrape_jobs_total{status="failed"}[5m]))
+            /
+            sum(rate(hoistscraper_scrape_jobs_total[5m]))
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical scrape failure rate"
+          description: "More than 50% of scrape jobs are failing (current: {{ $value | humanizePercentage }})"
+
+      - alert: LongRunningScrapeJobs
+        expr: hoistscraper_scrape_job_duration_seconds > 600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Scrape jobs taking too long"
+          description: "Scrape jobs are taking more than 10 minutes to complete"
+
+      # API Performance Alerts
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(hoistscraper_api_request_duration_seconds_bucket[5m])) by (le, endpoint)
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency detected"
+          description: "95th percentile API latency exceeds 2 seconds for endpoint {{ $labels.endpoint }}"
+
+      - alert: HighAPIErrorRate
+        expr: |
+          (
+            sum(rate(hoistscraper_api_requests_total{status_code=~"5.."}[5m]))
+            /
+            sum(rate(hoistscraper_api_requests_total[5m]))
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API error rate"
+          description: "More than 5% of API requests are returning 5xx errors (current: {{ $value | humanizePercentage }})"
+
+      # Queue Monitoring
+      - alert: HighQueueBacklog
+        expr: hoistscraper_active_scrape_jobs > 100
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of queued scrape jobs"
+          description: "More than 100 scrape jobs in queue for 30 minutes (current: {{ $value }})"
+
+      - alert: QueueProcessingStopped
+        expr: |
+          (
+            hoistscraper_active_scrape_jobs > 0
+            and
+            rate(hoistscraper_scrape_jobs_total[10m]) == 0
+          )
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Queue processing has stopped"
+          description: "Jobs are queued but none are being processed"
+
+      # Ollama Service Alerts
+      - alert: OllamaModelNotLoaded
+        expr: hoistscraper_ollama_model_loaded == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ollama model not loaded"
+          description: "The Ollama extraction model is not loaded, extraction quality may be degraded"
+
+      # Opportunity Extraction Alerts
+      - alert: NoOpportunitiesExtracted
+        expr: |
+          (
+            sum(rate(hoistscraper_scrape_jobs_total{status="completed"}[1h])) > 0
+            and
+            sum(rate(hoistscraper_opportunities_extracted_total[1h])) == 0
+          )
+        for: 2h
+        labels:
+          severity: warning
+        annotations:
+          summary: "No opportunities extracted"
+          description: "Scrape jobs are completing but no opportunities are being extracted"
+
+      # Website Monitoring
+      - alert: NoActiveWebsites
+        expr: hoistscraper_websites_total{status="active"} == 0
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "No active websites configured"
+          description: "There are no active websites configured for scraping"

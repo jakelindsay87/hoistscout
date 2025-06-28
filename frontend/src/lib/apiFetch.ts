@@ -45,6 +45,18 @@ export async function apiFetch<T = any>(
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return 'http://localhost:8000'
       }
+      // In production, use relative paths if no API URL is set
+      if (!process.env.NEXT_PUBLIC_API_URL) {
+        // For Render deployment, the backend is on a different subdomain
+        // Extract the base domain and construct the API URL
+        const hostname = window.location.hostname
+        if (hostname.includes('onrender.com')) {
+          // The backend service is named 'hoistscraper' in render.yaml
+          return 'https://hoistscraper.onrender.com'
+        }
+        // For other deployments, use relative paths
+        return ''
+      }
     }
     // Use environment variable (set at build time)
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'

@@ -12,7 +12,7 @@ RUN pip install poetry==1.8.3
 
 # Configure Poetry
 ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VENV_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
 # Dependencies stage
@@ -26,10 +26,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Poetry configuration files
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml ./
 
-# Install Python dependencies
-RUN poetry install --only=main && rm -rf $POETRY_CACHE_DIR
+# Install Python dependencies (will generate lock file)
+RUN poetry lock && poetry install --only=main && rm -rf $POETRY_CACHE_DIR
 
 # Production stage
 FROM python-base as production
@@ -38,6 +38,20 @@ WORKDIR /app
 # Install system dependencies for production
 RUN apt-get update && apt-get install -y \
     curl \
+    wget \
+    libxss1 \
+    libgconf-2-4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from dependencies stage
@@ -48,6 +62,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy source code
 COPY . .
+
+# Install Playwright browsers
+RUN poetry run playwright install chromium
 
 # Create data directory for scraping results
 RUN mkdir -p /app/data

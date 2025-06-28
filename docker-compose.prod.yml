@@ -1,0 +1,181 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: hoistscraper-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    command: redis-server --appendonly yes --bind 0.0.0.0
+
+  db:
+    image: postgres:16
+    container_name: hoistscraper-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hoistscraper
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hoistscraper-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: hoistscraper-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@hoistscraper-db:5432/hoistscraper
+      REDIS_URL: redis://hoistscraper-redis:6379/0
+      REDIS_HOST: hoistscraper-redis
+      REDIS_PORT: 6379
+      OLLAMA_HOST: http://hoistscraper-ollama:11434
+      CRAWL_CONCURRENCY: "3"
+      RATE_LIMIT_DELAY: "2"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - scraper_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    container_name: hoistscraper-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: hoistscraper-worker
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@hoistscraper-db:5432/hoistscraper
+      REDIS_URL: redis://hoistscraper-redis:6379/0
+      REDIS_HOST: hoistscraper-redis
+      REDIS_PORT: 6379
+      OLLAMA_HOST: http://hoistscraper-ollama:11434
+      DATA_DIR: /data
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    volumes:
+      - scraper_data:/data
+      - playwright_cache:/ms-playwright
+    networks:
+      - app-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Optional: Ollama model puller - runs once to download models
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: hoistscraper-ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - app-network
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Ollama to be ready...';
+        sleep 10;
+        echo 'Pulling Mistral model...';
+        ollama pull mistral:7b-instruct;
+        echo 'Model pulled successfully!';
+      "
+    profiles:
+      - setup
+
+volumes:
+  postgres_data:
+  redis_data:
+  scraper_data:
+  ollama_data:
+  playwright_cache:
+
+networks:
+  app-network:
+    driver: bridge

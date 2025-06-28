@@ -1,0 +1,172 @@
+version: '3.8'
+
+services:
+  # Nginx reverse proxy with SSL
+  nginx:
+    image: nginx:alpine
+    container_name: hoistscraper-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    environment:
+      - DOMAIN=${DOMAIN}
+      - SSL_CERT_PATH=/etc/letsencrypt/live/${DOMAIN}/fullchain.pem
+      - SSL_KEY_PATH=/etc/letsencrypt/live/${DOMAIN}/privkey.pem
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - app-network
+    restart: unless-stopped
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  # Certbot for SSL certificate management
+  certbot:
+    image: certbot/certbot
+    container_name: hoistscraper-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt:rw
+      - ./certbot/www:/var/www/certbot:rw
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - app-network
+
+  db:
+    image: postgres:16
+    container_name: hoistscraper-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    # Security: No external ports exposed
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: hoistscraper-backend
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@hoistscraper-db:5432/${DB_NAME}
+      USE_SIMPLE_QUEUE: "true"
+      WORKER_THREADS: "4"
+      CRAWL_CONCURRENCY: ${CRAWL_CONCURRENCY:-3}
+      RATE_LIMIT_DELAY: ${RATE_LIMIT_DELAY:-2}
+      OLLAMA_HOST: http://hoistscraper-ollama:11434
+      CREDENTIAL_SALT: ${CREDENTIAL_SALT}
+      CREDENTIAL_PASSPHRASE: ${CREDENTIAL_PASSPHRASE}
+      API_KEY: ${API_KEY}
+      REQUIRE_AUTH: ${REQUIRE_AUTH:-true}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - scraper_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    # Security: No external ports exposed
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    container_name: hoistscraper-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: /api
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    # Security: No external ports exposed
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: hoistscraper-worker
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@hoistscraper-db:5432/${DB_NAME}
+      DATA_DIR: /data
+      WORKER_TYPE: v2
+      PYTHONUNBUFFERED: 1
+      OLLAMA_HOST: http://hoistscraper-ollama:11434
+      CREDENTIAL_SALT: ${CREDENTIAL_SALT}
+      CREDENTIAL_PASSPHRASE: ${CREDENTIAL_PASSPHRASE}
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - scraper_data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    command: ["poetry", "run", "python", "-m", "hoistscraper.worker_standalone"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hoistscraper-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - app-network
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Security: No external ports exposed
+
+volumes:
+  postgres_data:
+  scraper_data:
+  ollama_data:
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

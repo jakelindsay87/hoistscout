@@ -5,6 +5,7 @@ import { useSites, useCreateSite } from '@/hooks/useSites'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toast'
+import { CredentialManagementModal } from '@/components/credentials/CredentialManagementModal'
 import Papa from 'papaparse'
 
 export default function SitesPage() {
@@ -12,6 +13,7 @@ export default function SitesPage() {
   const { trigger: createSite, isMutating: isCreating } = useCreateSite()
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
+  const [credentialsModal, setCredentialsModal] = useState<{ websiteId: number; websiteName: string } | null>(null)
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -177,16 +179,25 @@ export default function SitesPage() {
                     {new Date(site.created_at).toLocaleDateString()}
                   </td>
                   <td className="p-4 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // Navigate to jobs page filtered by site
-                        window.location.href = `/jobs?site=${site.id}`
-                      }}
-                    >
-                      View Jobs
-                    </Button>
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCredentialsModal({ websiteId: site.id, websiteName: site.name || site.url })}
+                      >
+                        Credentials
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Navigate to jobs page filtered by site
+                          window.location.href = `/jobs?site=${site.id}`
+                        }}
+                      >
+                        View Jobs
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -227,6 +238,15 @@ export default function SitesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Credentials modal */}
+      {credentialsModal && (
+        <CredentialManagementModal
+          websiteId={credentialsModal.websiteId}
+          websiteName={credentialsModal.websiteName}
+          onClose={() => setCredentialsModal(null)}
+        />
       )}
     </div>
   )

@@ -2,6 +2,8 @@ from sqlmodel import SQLModel, Field
 from typing import Optional
 from datetime import datetime, timezone
 from enum import Enum
+from pydantic import validator
+import re
 
 class JobStatus(str, Enum):
     PENDING = "pending"
@@ -10,10 +12,63 @@ class JobStatus(str, Enum):
     FAILED = "failed"
 
 class WebsiteBase(SQLModel):
-    url: str = Field(index=True, unique=True)
-    name: str
-    description: Optional[str] = None
+    url: str = Field(index=True, unique=True, min_length=10, max_length=2048)
+    name: str = Field(min_length=1, max_length=255) 
+    description: Optional[str] = Field(default=None, max_length=1000)
     active: bool = True
+    
+    # Additional fields that exist in production database
+    region: Optional[str] = Field(default=None, max_length=255)
+    government_level: Optional[str] = Field(default=None, max_length=255)
+    grant_type: Optional[str] = Field(default=None, max_length=255)
+    credentials: Optional[str] = Field(default=None)  # For encrypted credentials
+    
+    @validator('url')
+    def validate_url(cls, v):
+        """Validate URL format and prevent SSRF."""
+        from urllib.parse import urlparse
+        
+        if not v or not isinstance(v, str):
+            raise ValueError("URL must be a non-empty string")
+        
+        v = v.strip()
+        
+        try:
+            result = urlparse(v)
+            if not all([result.scheme, result.netloc]):
+                raise ValueError("Invalid URL format")
+            
+            if result.scheme not in ['http', 'https']:
+                raise ValueError("Only HTTP/HTTPS URLs are allowed")
+            
+            # Prevent SSRF attacks
+            hostname = result.hostname
+            if hostname and hostname in ['localhost', '127.0.0.1', '0.0.0.0']:
+                raise ValueError("Local URLs are not allowed")
+                
+            return v
+        except ValueError:
+            raise
+        except Exception:
+            raise ValueError("Invalid URL format")
+    
+    @validator('name', 'description')
+    def sanitize_text(cls, v):
+        """Basic XSS prevention."""
+        if v is None:
+            return v
+        
+        if not isinstance(v, str):
+            raise ValueError("Value must be a string")
+        
+        # Remove excess whitespace
+        v = ' '.join(v.split())
+        
+        # Check for script tags or javascript
+        if re.search(r'<script|javascript:', v, re.IGNORECASE):
+            raise ValueError("Text contains potentially malicious content")
+        
+        return v
 
 class Website(WebsiteBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -50,23 +105,26 @@ class ScrapeJobRead(ScrapeJobBase):
     updated_at: datetime
 
 class OpportunityBase(SQLModel):
-    title: str
+    """Grant opportunity extracted from scraped data."""
+    title: str = Field(min_length=1, max_length=500)
     description: Optional[str] = None
-    source_url: str
-    website_id: int = Field(foreign_key="website.id")
-    job_id: int = Field(foreign_key="scrapejob.id")
+    funding_amount: Optional[str] = Field(default=None, max_length=255)
     deadline: Optional[datetime] = None
-    amount: Optional[str] = None
+    eligibility: Optional[str] = None
+    application_url: Optional[str] = Field(default=None, max_length=2048)
+    source_url: str = Field(max_length=2048)  # Original page URL
+    website_id: int = Field(foreign_key="website.id")
+    scrape_job_id: int = Field(foreign_key="scrapejob.id")
 
 class Opportunity(OpportunityBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    scraped_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
 class OpportunityCreate(OpportunityBase):
     pass
 
 class OpportunityRead(OpportunityBase):
     id: int
-    scraped_at: datetime
-
- 
+    created_at: datetime
+    updated_at: datetime

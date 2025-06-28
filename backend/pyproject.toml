@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "hoistscraper"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 fastapi = "^0.115.12"
 playwright = "^1.52.0"
 playwright-stealth = "^1.0"
@@ -26,6 +26,11 @@ rq = "^1.16.0"
 redis = "^5.0.0"
 fakeredis = "^2.21.0"
 setuptools = "^68.0.0"  # Pinned to avoid pkg_resources deprecation warning
+cryptography = "^42.0.0"
+loguru = "^0.7.0"
+python-dateutil = "^2.9.0"
+prometheus-client = "^0.20.0"
+sentry-sdk = {extras = ["fastapi"], version = "^2.3.0"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2"

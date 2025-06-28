@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    container_name: hoistscraper-backup
+    environment:
+      # Database connection (same as main app)
+      DATABASE_URL: ${DATABASE_URL}
+      
+      # Backup configuration
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_WEBHOOK_URL: ${BACKUP_WEBHOOK_URL}
+      BACKUP_ALERT_THRESHOLD: ${BACKUP_ALERT_THRESHOLD:-48}
+      
+      # S3 configuration (optional)
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET}
+      BACKUP_S3_STORAGE_CLASS: ${BACKUP_S3_STORAGE_CLASS:-STANDARD_IA}
+      BACKUP_S3_LIFECYCLE: ${BACKUP_S3_LIFECYCLE:-true}
+      BACKUP_KEEP_LOCAL: ${BACKUP_KEEP_LOCAL:-false}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      
+    volumes:
+      # Local backup storage
+      - backup-data:/backups
+      
+      # Share environment file
+      - ./.env.production:/app/.env.production:ro
+      
+      # Logs
+      - ./logs/backup:/var/log
+      
+    networks:
+      - hoistscraper-network
+      
+    depends_on:
+      - db
+      
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  # Optional: Backup UI for monitoring
+  backup-ui:
+    image: kopia/kopia:latest
+    container_name: hoistscraper-backup-ui
+    environment:
+      KOPIA_PASSWORD: ${BACKUP_UI_PASSWORD:-changeme}
+    command: server start --insecure --address=0.0.0.0:51515
+    volumes:
+      - backup-data:/backups:ro
+      - kopia-cache:/app/cache
+      - kopia-logs:/app/logs
+    ports:
+      - "51515:51515"
+    networks:
+      - hoistscraper-network
+    restart: unless-stopped
+    profiles:
+      - backup-ui
+
+volumes:
+  backup-data:
+  kopia-cache:
+  kopia-logs:
+
+networks:
+  hoistscraper-network:
+    external: true

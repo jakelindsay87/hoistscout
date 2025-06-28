@@ -18,20 +18,23 @@ RUN pip install poetry==1.8.3
 
 # Configure Poetry
 ENV POETRY_NO_INTERACTION=1
-ENV POETRY_VENV_IN_PROJECT=1
+ENV POETRY_VIRTUALENVS_IN_PROJECT=1
 ENV POETRY_CACHE_DIR=/tmp/poetry_cache
 
 # Set work directory
 WORKDIR /app
 
 # Copy Poetry files
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml ./
 
-# Install dependencies
-RUN poetry install --no-dev && rm -rf $POETRY_CACHE_DIR
+# Install dependencies (will generate lock file)
+RUN poetry lock && poetry install --only main && rm -rf $POETRY_CACHE_DIR
 
-# Install Playwright browsers
-RUN poetry run playwright install chromium --with-deps
+# Activate virtual environment and install Playwright browsers
+RUN . /app/.venv/bin/activate && pip install playwright && playwright install chromium --with-deps
+
+# Make sure to use venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy source code
 COPY . .
@@ -40,8 +43,8 @@ COPY . .
 RUN mkdir -p /app/data
 
 # Health check - check if worker process is running
-HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=5 \
     CMD pgrep -f "rq worker" || exit 1
 
-# Run the RQ worker
-CMD ["poetry", "run", "python", "-m", "hoistscraper.worker"]
+# Run the RQ worker with improved startup script
+CMD ["poetry", "run", "python", "-m", "hoistscraper.worker_startup"]

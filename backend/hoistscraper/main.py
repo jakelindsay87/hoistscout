@@ -3,7 +3,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
-from typing import List
+from typing import List, Optional
 from . import models, db
 from datetime import datetime, timezone, timedelta
 import logging
@@ -12,10 +12,20 @@ from contextlib import asynccontextmanager
 from sqlalchemy.exc import IntegrityError
 from pathlib import Path
 # from routers import ingest, jobs  # Removed - routers deleted
+from .auth.api_auth import optional_api_key
+from .logging_config import setup_from_env, get_logger, log_performance, log_security_event
+from .middleware import LoggingMiddleware, SecurityHeadersMiddleware, RateLimitMiddleware
+from .monitoring import (
+    init_sentry, get_metrics, HealthCheck, monitor_performance,
+    track_api_metrics, track_scrape_job_metrics, track_opportunities_metrics,
+    update_active_jobs, update_websites_metrics, update_worker_health,
+    update_database_connections, update_ollama_status
+)
+import time
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure logging from environment
+setup_from_env("hoistscraper")
+logger = get_logger(__name__)
 
 async def auto_seed_from_csv(csv_path: str):
     """Auto-seed database from CSV file if database is empty."""
@@ -53,33 +63,62 @@ async def auto_seed_from_csv(csv_path: str):
 async def lifespan(app: FastAPI):
     # on startup
     logger.info("Application startup...")
+    
+    # Initialize Sentry for error tracking
+    init_sentry(app)
+    
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         logger.error("DATABASE_URL environment variable not set!")
         raise ValueError("DATABASE_URL environment variable not set!")
     
-    logger.info(f"DATABASE_URL: {database_url}")
-    
-    # Mask password for logging
-    from urllib.parse import urlparse, urlunparse
-    parsed_url = urlparse(database_url)
-    if parsed_url.password:
-        safe_url = parsed_url._replace(netloc=f"{parsed_url.username}:***@{parsed_url.hostname}")
-        logger.info(f"Connecting to database at: {urlunparse(safe_url)}")
-    else:
-        logger.info(f"Connecting to database at: {database_url}")
+    # The logging config will automatically mask the password
+    logger.info(f"Connecting to database at: {database_url}")
         
+    start_time = time.time()
     db.create_db_and_tables()
+    duration = time.time() - start_time
     logger.info("Database tables created.")
+    log_performance(logger, "database_initialization", duration)
     
     # Auto-seed from CSV if configured
     csv_seed_path = os.getenv("CSV_SEED_PATH")
     if csv_seed_path:
         await auto_seed_from_csv(csv_seed_path)
     
+    # Start simple job queue if Redis is not available
+    use_simple_queue = os.getenv("USE_SIMPLE_QUEUE", "true").lower() == "true"
+    if use_simple_queue:
+        try:
+            from .simple_queue import job_queue
+            job_queue.start()
+            logger.info("Simple job queue started")
+        except Exception as e:
+            logger.warning(f"Failed to start simple job queue: {e}")
+    
+    # Update initial metrics
+    try:
+        session_gen = db.get_session()
+        session = next(session_gen)
+        active_sites = len(session.exec(select(models.Website).where(models.Website.is_active == True)).all())
+        inactive_sites = len(session.exec(select(models.Website).where(models.Website.is_active == False)).all())
+        update_websites_metrics(active_sites, inactive_sites)
+        session_gen.close()
+    except Exception as e:
+        logger.warning(f"Failed to update initial metrics: {e}")
+    
     yield
     # on shutdown
     logger.info("Application shutdown.")
+    
+    # Stop simple job queue
+    if use_simple_queue:
+        try:
+            from .simple_queue import job_queue
+            job_queue.stop()
+            logger.info("Simple job queue stopped")
+        except Exception as e:
+            logger.warning(f"Failed to stop simple job queue: {e}")
 
 app = FastAPI(
     title="HoistScraper API",
@@ -87,6 +126,31 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan
 )
+
+# Configure middleware
+# Add custom middleware (order matters - first added is outermost)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=100)
+app.add_middleware(LoggingMiddleware)
+
+# Add metrics middleware
+@app.middleware("http")
+async def track_metrics(request, call_next):
+    """Track API metrics for each request."""
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    
+    # Track metrics
+    if request.url.path.startswith("/api/"):
+        track_api_metrics(
+            method=request.method,
+            endpoint=request.url.path,
+            status_code=response.status_code,
+            duration=duration
+        )
+    
+    return response
 
 # Configure CORS
 app.add_middleware(
@@ -104,8 +168,8 @@ app.add_middleware(
 )
 
 # Include routers
-# app.include_router(ingest.router)  # Removed - routers deleted
-# app.include_router(jobs.router)
+from .routers import credentials
+app.include_router(credentials.router)
 
 @app.get("/")
 async def root():
@@ -113,9 +177,68 @@ async def root():
     return {"message": "HoistScraper API", "version": "0.1.0"}
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint for Docker health checks."""
-    return {"status": "healthy", "service": "hoistscraper-api"}
+async def health_check(session: Session = Depends(db.get_session)):
+    """Comprehensive health check endpoint."""
+    health_status = {
+        "status": "healthy",
+        "service": "hoistscraper-api",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "checks": {}
+    }
+    
+    # Check database
+    db_health = HealthCheck.check_database(db.engine)
+    health_status["checks"]["database"] = db_health
+    if db_health["status"] != "healthy":
+        health_status["status"] = "unhealthy"
+    
+    # Check Redis if configured
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url and redis_url != "redis://localhost:6379":
+        try:
+            import redis
+            redis_client = redis.from_url(redis_url)
+            redis_health = HealthCheck.check_redis(redis_client)
+            health_status["checks"]["redis"] = redis_health
+            if redis_health["status"] != "healthy":
+                health_status["status"] = "degraded"
+        except Exception as e:
+            health_status["checks"]["redis"] = {
+                "status": "unavailable",
+                "message": str(e)
+            }
+    
+    # Check Ollama if configured
+    ollama_host = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+    if ollama_host:
+        ollama_health = HealthCheck.check_ollama(ollama_host)
+        health_status["checks"]["ollama"] = ollama_health
+        update_ollama_status(ollama_health["status"] == "healthy")
+    
+    # Check worker queue
+    if redis_url:
+        try:
+            import redis
+            redis_client = redis.from_url(redis_url)
+            worker_health = HealthCheck.check_worker_queue(redis_client)
+            health_status["checks"]["worker_queue"] = worker_health
+            update_worker_health(worker_health["status"] == "healthy")
+        except Exception:
+            health_status["checks"]["worker_queue"] = {
+                "status": "unavailable",
+                "message": "Worker queue not accessible"
+            }
+    
+    # Return appropriate status code
+    if health_status["status"] == "unhealthy":
+        raise HTTPException(status_code=503, detail=health_status)
+    
+    return health_status
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint."""
+    return get_metrics()
 
 @app.get("/docs")
 async def get_docs():
@@ -126,7 +249,11 @@ async def get_docs():
 @app.get("/api/websites", response_model=List[models.WebsiteRead])
 def read_websites(session: Session = Depends(db.get_session)):
     """Get all websites."""
+    start_time = time.time()
     websites = session.exec(select(models.Website)).all()
+    duration = time.time() - start_time
+    log_performance(logger, "api_read_websites", duration, count=len(websites))
+    logger.info(f"Retrieved {len(websites)} websites")
     return websites
 
 @app.get("/api/websites/{website_id}", response_model=models.WebsiteRead)
@@ -138,20 +265,38 @@ def read_website(website_id: int, session: Session = Depends(db.get_session)):
     return website
 
 @app.post("/api/websites", response_model=models.WebsiteRead)
-def create_website(website: models.WebsiteCreate, session: Session = Depends(db.get_session)):
+def create_website(
+    website: models.WebsiteCreate, 
+    session: Session = Depends(db.get_session),
+    auth_user: Optional[str] = Depends(optional_api_key)
+):
     """Create a new website. Returns HTTP 409 if URL already exists."""
+    start_time = time.time()
+    logger.info(f"Creating new website: {website.name} ({website.url})")
+    
     try:
         db_website = models.Website.model_validate(website)
         session.add(db_website)
         session.commit()
         session.refresh(db_website)
+        
+        duration = time.time() - start_time
+        log_performance(logger, "api_create_website", duration, website_id=db_website.id)
+        logger.info(f"Successfully created website ID {db_website.id}: {db_website.name}")
+        
         return db_website
     except IntegrityError:
         session.rollback()
+        logger.warning(f"Duplicate website creation attempt for URL: {website.url}")
         raise HTTPException(status_code=409, detail=f"Website with URL '{website.url}' already exists")
 
 @app.put("/api/websites/{website_id}", response_model=models.WebsiteRead)
-def update_website(website_id: int, website: models.WebsiteCreate, session: Session = Depends(db.get_session)):
+def update_website(
+    website_id: int, 
+    website: models.WebsiteCreate, 
+    session: Session = Depends(db.get_session),
+    auth_user: Optional[str] = Depends(optional_api_key)
+):
     """Update an existing website."""
     db_website = session.get(models.Website, website_id)
     if not db_website:
@@ -173,14 +318,29 @@ def update_website(website_id: int, website: models.WebsiteCreate, session: Sess
         raise HTTPException(status_code=409, detail=f"Website with URL '{website.url}' already exists")
 
 @app.delete("/api/websites/{website_id}")
-def delete_website(website_id: int, session: Session = Depends(db.get_session)):
+def delete_website(
+    website_id: int, 
+    session: Session = Depends(db.get_session),
+    auth_user: Optional[str] = Depends(optional_api_key)
+):
     """Delete a website."""
     website = session.get(models.Website, website_id)
     if not website:
+        logger.warning(f"Attempted to delete non-existent website ID: {website_id}")
         raise HTTPException(status_code=404, detail="Website not found")
+    
+    website_name = website.name
+    website_url = website.url
     
     session.delete(website)
     session.commit()
+    
+    log_security_event(logger, "website_deleted",
+                     website_id=website_id,
+                     website_name=website_name,
+                     website_url=website_url,
+                     deleted_by=auth_user or "anonymous")
+    
     return {"ok": True}
 
 # ScrapeJob API endpoints
@@ -199,7 +359,11 @@ def read_scrape_job(job_id: int, session: Session = Depends(db.get_session)):
     return job
 
 @app.post("/api/scrape-jobs", response_model=models.ScrapeJobRead)
-def create_scrape_job(job: models.ScrapeJobCreate, session: Session = Depends(db.get_session)):
+def create_scrape_job(
+    job: models.ScrapeJobCreate, 
+    session: Session = Depends(db.get_session),
+    auth_user: Optional[str] = Depends(optional_api_key)
+):
     """Create a new scrape job."""
     # Verify website exists
     website = session.get(models.Website, job.website_id)
@@ -210,6 +374,68 @@ def create_scrape_job(job: models.ScrapeJobCreate, session: Session = Depends(db
     session.add(db_job)
     session.commit()
     session.refresh(db_job)
+    
+    # Track metrics
+    track_scrape_job_metrics(db_job.website_id, "created")
+    
+    # Queue the job for processing
+    queue_start = time.time()
+    queue_success = False
+    queue_method = "none"
+    
+    try:
+        # Try simple queue first
+        from .simple_queue import enqueue_job
+        
+        # Import appropriate worker based on configuration
+        worker_type = os.getenv("WORKER_TYPE", "v2")
+        if worker_type == "v2":
+            try:
+                from .worker_v2 import scrape_website_job_v2
+                worker_func = scrape_website_job_v2
+            except ImportError:
+                from .worker import scrape_website_job
+                worker_func = scrape_website_job
+        else:
+            from .worker import scrape_website_job
+            worker_func = scrape_website_job
+        
+        enqueue_job(
+            worker_func,
+            website_id=db_job.website_id,
+            job_id=db_job.id
+        )
+        queue_success = True
+        queue_method = "simple_queue"
+        logger.info(f"Enqueued scrape job {db_job.id} for website {db_job.website_id} using simple queue")
+    except ImportError:
+        # Fallback to Redis queue if available
+        try:
+            from .queue import enqueue_job as redis_enqueue
+            from .worker import scrape_website_job
+            
+            redis_enqueue(
+                scrape_website_job,
+                website_id=db_job.website_id,
+                job_id=db_job.id,
+                queue_name="scraper"
+            )
+            queue_success = True
+            queue_method = "redis_queue"
+            logger.info(f"Enqueued scrape job {db_job.id} to Redis queue")
+        except Exception as e:
+            logger.error(f"Failed to enqueue job {db_job.id} to Redis: {str(e)}")
+            # Don't fail the request, job is still created
+    except Exception as e:
+        logger.error(f"Failed to enqueue job {db_job.id}: {str(e)}", exc_info=True)
+        # Don't fail the request, job is still created
+    
+    queue_duration = time.time() - queue_start
+    log_performance(logger, "job_enqueue", queue_duration,
+                  job_id=db_job.id,
+                  queue_method=queue_method,
+                  success=queue_success)
+    
     return db_job
 
 @app.put("/api/scrape-jobs/{job_id}", response_model=models.ScrapeJobRead)
@@ -273,6 +499,54 @@ def delete_opportunity(opportunity_id: int, session: Session = Depends(db.get_se
     session.delete(opportunity)
     session.commit()
     return {"ok": True}
+
+@app.post("/api/scrape/{website_id}/trigger")
+def trigger_scrape_manual(
+    website_id: int, 
+    session: Session = Depends(db.get_session),
+    auth_user: Optional[str] = Depends(optional_api_key)
+):
+    """Manually trigger a scrape job for testing."""
+    # Verify website exists
+    website = session.get(models.Website, website_id)
+    if not website:
+        raise HTTPException(status_code=404, detail="Website not found")
+    
+    # Create a new job
+    db_job = models.ScrapeJob(website_id=website_id, status=models.JobStatus.PENDING)
+    session.add(db_job)
+    session.commit()
+    session.refresh(db_job)
+    
+    # Try to execute directly for immediate feedback
+    try:
+        from .worker import ScraperWorker
+        worker = ScraperWorker()
+        
+        # Execute synchronously for testing
+        result = worker.scrape_website(website_id=website_id, job_id=db_job.id)
+        
+        # Refresh job status
+        session.refresh(db_job)
+        
+        return {
+            "job": db_job,
+            "result": {
+                "title": result.get("title"),
+                "url": result.get("url"),
+                "status": "completed"
+            }
+        }
+    except Exception as e:
+        logger.error(f"Manual scrape failed: {str(e)}")
+        # Update job status to failed
+        db_job.status = models.JobStatus.FAILED
+        db_job.error_message = str(e)
+        session.commit()
+        raise HTTPException(status_code=500, detail=f"Scraping failed: {str(e)}")
+    finally:
+        if 'worker' in locals():
+            worker.cleanup()
 
 @app.get("/api/stats")
 def get_stats(session: Session = Depends(db.get_session)):

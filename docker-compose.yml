@@ -94,7 +94,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.worker
-      target: production
     container_name: hoistscraper-worker
     environment:
       DATABASE_URL: postgresql://postgres:postgres@hoistscraper-db:5432/hoistscraper
@@ -102,21 +101,45 @@ services:
       REDIS_HOST: hoistscraper-redis
       REDIS_PORT: 6379
       DATA_DIR: /data
+      WORKER_TYPE: v2  # Use enhanced worker with Ollama
+      PYTHONUNBUFFERED: 1  # Ensure logs are flushed immediately
+      OLLAMA_HOST: http://hoistscraper-ollama:11434
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      ollama:
+        condition: service_started
     volumes:
       - scraper_data:/data
     networks:
       - app-network
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hoistscraper-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - app-network
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0
 
 volumes:
   postgres_data:
   redis_data:
   scraper_data:
+  ollama_data:
 
 networks:
   app-network:

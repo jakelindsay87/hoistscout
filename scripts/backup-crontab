@@ -1,0 +1,27 @@
+# HoistScraper Automated Backup Schedule
+# 
+# This crontab configuration runs automated PostgreSQL backups
+# Install with: crontab backup-crontab
+# View current crontab: crontab -l
+# Edit crontab: crontab -e
+
+# Environment variables (adjust paths as needed)
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+BACKUP_DIR=/var/backups/hoistscraper
+BACKUP_LOG=/var/log/hoistscraper-backup.log
+
+# Daily backup at 2:00 AM
+0 2 * * * /app/scripts/backup-postgres.sh >> $BACKUP_LOG 2>&1
+
+# Weekly full backup with extended retention (Sunday at 3:00 AM)
+0 3 * * 0 BACKUP_RETENTION_DAYS=90 /app/scripts/backup-postgres.sh >> $BACKUP_LOG 2>&1
+
+# Monthly backup with long-term retention (1st of month at 4:00 AM)
+0 4 1 * * BACKUP_RETENTION_DAYS=365 BACKUP_S3_STORAGE_CLASS=GLACIER /app/scripts/backup-postgres.sh >> $BACKUP_LOG 2>&1
+
+# Test backup health (every 6 hours)
+0 */6 * * * /app/scripts/test-backup.sh >> $BACKUP_LOG 2>&1
+
+# Rotate backup logs weekly
+0 0 * * 0 /usr/sbin/logrotate -f /etc/logrotate.d/hoistscraper-backup

@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: hoistscraper-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-hoistscraper}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: hoistscraper-backend
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@hoistscraper-db:5432/${DB_NAME:-hoistscraper}
+      USE_SIMPLE_QUEUE: "true"
+      WORKER_THREADS: "4"
+      CRAWL_CONCURRENCY: "8"
+      OLLAMA_HOST: http://hoistscraper-ollama:11434
+      CREDENTIAL_SALT: ${CREDENTIAL_SALT:-your-random-salt-here}
+      CREDENTIAL_PASSPHRASE: ${CREDENTIAL_PASSPHRASE:-your-secure-passphrase}
+      API_KEY: ${API_KEY:-your-api-key-here}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - scraper_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    container_name: hoistscraper-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${FRONTEND_API_URL:-http://localhost:8000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: hoistscraper-worker
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@hoistscraper-db:5432/${DB_NAME:-hoistscraper}
+      DATA_DIR: /data
+      WORKER_TYPE: v2
+      PYTHONUNBUFFERED: 1
+      OLLAMA_HOST: http://hoistscraper-ollama:11434
+      CREDENTIAL_SALT: ${CREDENTIAL_SALT:-your-random-salt-here}
+      CREDENTIAL_PASSPHRASE: ${CREDENTIAL_PASSPHRASE:-your-secure-passphrase}
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - scraper_data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    command: ["poetry", "run", "python", "-m", "hoistscraper.worker_standalone"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hoistscraper-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - app-network
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+  scraper_data:
+  ollama_data:
+
+networks:
+  app-network:
+    driver: bridge
