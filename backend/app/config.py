@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     max_pdf_size_mb: int = 100
     pdf_processing_timeout: int = 600  # 10 minutes
     
+    # Browser Settings
+    headless_browser: bool = True
+    
+    # CAPTCHA Settings
+    captcha_service: str = "2captcha"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
