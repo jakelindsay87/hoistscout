@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y \
 
 # Copy the hoistscout backend code
 COPY hoistscout/backend/app /app/app
-COPY hoistscout/backend/alembic.ini /app/
+COPY hoistscout/backend/alembic.ini /app/alembic.ini
 COPY hoistscout/backend/alembic /app/alembic
-COPY hoistscout/pyproject.toml /app/
+COPY hoistscout/pyproject.toml /app/pyproject.toml
 
 # Install Python dependencies
 RUN pip install --no-cache-dir \
@@ -31,11 +31,13 @@ RUN pip install --no-cache-dir \
     python-dotenv==1.0.0 \
     loguru==0.7.2
 
-# Create app directory structure
-RUN mkdir -p /app/app
+# Create app directory structure and ensure __init__.py files
+RUN mkdir -p /app/app && \
+    touch /app/__init__.py && \
+    touch /app/app/__init__.py
 
 # Expose port
-EXPOSE 8000
+EXPOSE 10000
 
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]

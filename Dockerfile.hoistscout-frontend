@@ -46,4 +46,5 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+# For Render, we need to use PORT 10000
+CMD ["sh", "-c", "PORT=${PORT:-10000} node server.js"]
