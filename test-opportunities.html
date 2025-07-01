@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HoistScraper Opportunities</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .stats {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            gap: 30px;
+        }
+        .stat-item {
+            flex: 1;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+        .opportunities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .opportunity-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .opportunity-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .opportunity-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        .opportunity-description {
+            color: #6b7280;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        .opportunity-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #4b5563;
+        }
+        .deadline {
+            color: #dc2626;
+            font-weight: 500;
+        }
+        .amount {
+            color: #059669;
+            font-weight: 500;
+        }
+        .view-link {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .view-link:hover {
+            background: #2563eb;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 HoistScraper Grant Opportunities</h1>
+        
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <div>Total Opportunities</div>
+                <div class="stat-value" id="total-count">0</div>
+            </div>
+            <div class="stat-item">
+                <div>Active Sites</div>
+                <div class="stat-value" id="sites-count">1</div>
+            </div>
+            <div class="stat-item">
+                <div>Last Updated</div>
+                <div class="stat-value" id="last-updated">Now</div>
+            </div>
+        </div>
+        
+        <div id="opportunities" class="opportunities-grid">
+            <div class="loading">Loading opportunities...</div>
+        </div>
+    </div>
+
+    <script>
+    async function loadOpportunities() {
+        const container = document.getElementById('opportunities');
+        
+        try {
+            const response = await fetch('http://localhost:8000/api/opportunities');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Update stats
+            document.getElementById('total-count').textContent = data.total || 0;
+            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+            
+            if (!data.items || data.items.length === 0) {
+                container.innerHTML = '<div class="error">No opportunities found. The scraper may still be processing.</div>';
+                return;
+            }
+            
+            // Clear loading message
+            container.innerHTML = '';
+            
+            // Display opportunities
+            data.items.forEach(opp => {
+                const card = document.createElement('div');
+                card.className = 'opportunity-card';
+                
+                const deadline = opp.deadline ? new Date(opp.deadline).toLocaleDateString() : 'Not specified';
+                const amount = opp.amount || 'Not specified';
+                
+                card.innerHTML = `
+                    <div class="opportunity-title">${opp.title}</div>
+                    <div class="opportunity-description">${opp.description || 'No description available'}</div>
+                    <div class="opportunity-meta">
+                        <div class="meta-item deadline">📅 Deadline: ${deadline}</div>
+                        <div class="meta-item amount">💰 ${amount}</div>
+                    </div>
+                    <a href="${opp.source_url}" target="_blank" class="view-link">View on Tenders.gov.au →</a>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+        } catch (error) {
+            console.error('Error loading opportunities:', error);
+            container.innerHTML = `<div class="error">Error loading opportunities: ${error.message}</div>`;
+        }
+    }
+    
+    // Load opportunities on page load
+    loadOpportunities();
+    
+    // Reload every 30 seconds
+    setInterval(loadOpportunities, 30000);
+    </script>
+</body>
+</html>

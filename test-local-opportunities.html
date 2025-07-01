@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Local Opportunities</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .opportunity {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .opportunity h3 {
+            margin: 0 0 10px 0;
+            color: #1f2937;
+        }
+        .opportunity p {
+            margin: 5px 0;
+            color: #6b7280;
+        }
+        .deadline {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        .amount {
+            color: #059669;
+            font-weight: bold;
+        }
+        .link {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 HoistScraper Opportunities - Local Test</h1>
+        <div id="status" class="loading">Loading opportunities...</div>
+        <div id="opportunities"></div>
+    </div>
+
+    <script>
+    async function loadOpportunities() {
+        const statusEl = document.getElementById('status');
+        const container = document.getElementById('opportunities');
+        
+        try {
+            // Try direct localhost URL
+            const response = await fetch('http://localhost:8000/api/opportunities', {
+                headers: {
+                    'Accept': 'application/json',
+                },
+                mode: 'cors'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            statusEl.innerHTML = `<p style="color: #059669;">✅ Successfully loaded ${data.total || data.items?.length || 0} opportunities</p>`;
+            
+            if (!data.items || data.items.length === 0) {
+                container.innerHTML = '<div class="error">No opportunities found in the database.</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            data.items.forEach((opp, index) => {
+                const deadline = opp.deadline ? new Date(opp.deadline).toLocaleDateString() : 'Not specified';
+                const amount = opp.amount || 'Not specified';
+                
+                const oppDiv = document.createElement('div');
+                oppDiv.className = 'opportunity';
+                oppDiv.innerHTML = `
+                    <h3>${index + 1}. ${opp.title}</h3>
+                    <p>${opp.description || 'No description available'}</p>
+                    <p class="deadline">📅 Deadline: ${deadline}</p>
+                    <p class="amount">💰 Amount: ${amount}</p>
+                    <p>📍 Location: ${opp.location || 'Not specified'}</p>
+                    <p>🏷️ Category: ${opp.categories || 'Not specified'}</p>
+                    <p><a href="${opp.source_url}" target="_blank" class="link">View on Source Site →</a></p>
+                `;
+                
+                container.appendChild(oppDiv);
+            });
+            
+        } catch (error) {
+            console.error('Error loading opportunities:', error);
+            statusEl.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            
+            // Try to provide more debugging info
+            container.innerHTML = `
+                <div class="error">
+                    <h3>Debug Information:</h3>
+                    <p>Error Type: ${error.name}</p>
+                    <p>Error Message: ${error.message}</p>
+                    <p>API URL: http://localhost:8000/api/opportunities</p>
+                    <p>Time: ${new Date().toLocaleString()}</p>
+                    <p>Browser: ${navigator.userAgent}</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Load on page load
+    loadOpportunities();
+    
+    // Add refresh button
+    document.addEventListener('DOMContentLoaded', () => {
+        const refreshBtn = document.createElement('button');
+        refreshBtn.textContent = '🔄 Refresh';
+        refreshBtn.style.cssText = 'margin: 20px 0; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;';
+        refreshBtn.onclick = loadOpportunities;
+        document.querySelector('.container').insertBefore(refreshBtn, document.getElementById('status'));
+    });
+    </script>
+</body>
+</html>

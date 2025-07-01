@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: hoistscraper-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    command: redis-server --appendonly yes --bind 0.0.0.0
+
+  db:
+    image: postgres:16
+    container_name: hoistscraper-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hoistscraper
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: hoistscraper-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@hoistscraper-db:5432/hoistscraper
+      REDIS_URL: redis://hoistscraper-redis:6379/0
+      REDIS_HOST: hoistscraper-redis
+      REDIS_PORT: 6379
+      CRAWL_CONCURRENCY: "3"
+      OLLAMA_HOST: http://host.docker.internal:11434
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - scraper_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    container_name: hoistscraper-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: hoistscraper-worker
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@hoistscraper-db:5432/hoistscraper
+      REDIS_URL: redis://hoistscraper-redis:6379/0
+      REDIS_HOST: hoistscraper-redis
+      REDIS_PORT: 6379
+      DATA_DIR: /data
+      WORKER_TYPE: v2
+      PYTHONUNBUFFERED: 1
+      OLLAMA_HOST: http://host.docker.internal:11434
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - scraper_data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres_data:
+  redis_data:
+  scraper_data:
+
+networks:
+  app-network:
+    driver: bridge

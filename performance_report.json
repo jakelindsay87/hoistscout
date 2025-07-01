@@ -1,0 +1,94 @@
+{
+  "timestamp": "2025-06-28T18:32:47.716738",
+  "endpoints": {
+    "/health": {
+      "endpoint": "/health",
+      "method": "GET",
+      "avg_response_time": 0.47620716094970705,
+      "min_response_time": 0.4057650566101074,
+      "max_response_time": 0.589888334274292,
+      "std_dev": 0.0722160656660557,
+      "error_rate": 0.0,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    "/api/websites": {
+      "endpoint": "/api/websites",
+      "method": "GET",
+      "avg_response_time": 0.4345980644226074,
+      "min_response_time": 0.3141660690307617,
+      "max_response_time": 0.6910574436187744,
+      "std_dev": 0.15177526243212708,
+      "error_rate": 1.0,
+      "status_codes": [
+        500,
+        500,
+        500,
+        500,
+        500
+      ]
+    },
+    "/api/scrape-jobs": {
+      "endpoint": "/api/scrape-jobs",
+      "method": "GET",
+      "avg_response_time": 0.5154030323028564,
+      "min_response_time": 0.3929629325866699,
+      "max_response_time": 0.8085565567016602,
+      "std_dev": 0.17413127698472466,
+      "error_rate": 0.0,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    "/docs": {
+      "endpoint": "/docs",
+      "method": "GET",
+      "avg_response_time": 0.37540197372436523,
+      "min_response_time": 0.31583213806152344,
+      "max_response_time": 0.4280970096588135,
+      "std_dev": 0.041408135497695175,
+      "error_rate": 0.0,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    }
+  },
+  "issues": [
+    {
+      "type": "high_error_rate",
+      "endpoint": "/api/websites",
+      "error_rate": 1.0,
+      "severity": "high"
+    },
+    {
+      "type": "concurrency_errors",
+      "error_rate": 1.0,
+      "severity": "high"
+    }
+  ],
+  "recommendations": [
+    {
+      "area": "scalability",
+      "issue": "High error rate under concurrent load",
+      "recommendation": "Implement rate limiting, connection pooling, and request queuing"
+    },
+    {
+      "area": "monitoring",
+      "issue": "No metrics endpoint",
+      "recommendation": "Implement Prometheus metrics for memory, CPU, and request monitoring"
+    }
+  ]
+}
