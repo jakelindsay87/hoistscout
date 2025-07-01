@@ -501,6 +501,88 @@ frontend/
 3. **Data Loss**
    - Mitigation: Backups, replication, transactions
 
+## Deployment Information
+
+### Production Deployment on Render
+
+HoistScout is deployed on Render.com with the following infrastructure:
+
+#### Database & Cache
+- **PostgreSQL Database**: `hoistscout-db` (dpg-d1hljcur433s73aup3s0-a)
+  - Host: `dpg-d1hljcur433s73aup3s0-a.oregon-postgres.render.com`
+  - Database: `hoistscout`
+  - User: `hoistscout_user`
+  - Plan: Free tier (can be upgraded for production)
+
+- **Redis Instance**: `hoistscout-redis` (red-d1hljoruibrs73fe7vkg)
+  - Internal URL: `redis://red-d1hljoruibrs73fe7vkg:6379`
+  - Used for: Celery queue, caching, session storage
+
+#### Application Services
+- **API Service**: `hoistscout-api` (srv-d1hltovfte5s73ad16tg)
+  - URL: https://hoistscout-api.onrender.com
+  - Port: 10000 (Render default)
+  - Dockerfile: `Dockerfile.hoistscout-api`
+
+- **Frontend Service**: `hoistscout-frontend` (srv-d1hlum6r433s73avdn6g)
+  - URL: https://hoistscout-frontend.onrender.com
+  - Port: 10000 (via PORT env variable)
+  - Dockerfile: `Dockerfile.hoistscout-frontend`
+
+- **Worker Service**: `hoistscout-worker` (srv-d1hlvanfte5s73ad476g)
+  - Type: Background worker
+  - Dockerfile: `Dockerfile.hoistscout-worker`
+  - Runs Celery workers for scraping jobs
+
+- **Info Page**: `hoistscout-info` (srv-d1hlrhjuibrs73fen260)
+  - URL: https://hoistscout-info.onrender.com
+  - Static site with project information
+
+#### Environment Variables
+Key environment variables configured in Render:
+```bash
+# API Service
+DATABASE_URL=postgresql://hoistscout_user:[PASSWORD]@[HOST]/hoistscout
+REDIS_URL=redis://red-d1hljoruibrs73fe7vkg:6379
+SECRET_KEY=[GENERATED]
+ENVIRONMENT=production
+PYTHONUNBUFFERED=1
+
+# Frontend Service
+NEXT_PUBLIC_API_URL=https://hoistscout-api.onrender.com
+NODE_ENV=production
+NEXT_TELEMETRY_DISABLED=1
+NODE_OPTIONS=--max-old-space-size=512
+
+# Worker Service
+DATABASE_URL=[SAME AS API]
+REDIS_URL=[SAME AS API]
+PYTHONUNBUFFERED=1
+```
+
+#### Deployment Configuration
+- **Auto-deploy**: Enabled from main branch
+- **GitHub Repository**: https://github.com/jakelindsay87/hoistscraper
+- **Build Context**: Root directory with custom Dockerfiles
+- **Health Checks**: Configured for API service at `/api/health`
+
+#### Monitoring & Logs
+- All services have logs available in Render dashboard
+- Deployment history tracked with Git commits
+- Health checks monitor service availability
+- Metrics available through Render's monitoring
+
+### Local Development
+For local development, use the provided `docker-compose.yml` in the hoistscout directory:
+```bash
+cd hoistscout
+docker-compose up
+```
+
+This starts all services locally with hot-reloading enabled.
+
 ## Conclusion
 
 HoistScout represents a next-generation approach to tender aggregation, combining intelligent extraction with enterprise-grade reliability. By leveraging modern LLM capabilities while maintaining strict performance and security requirements, the system can scale to meet the demands of government-scale data aggregation.
+
+The platform is now deployed on Render with a scalable infrastructure ready for production use. All core services are containerized and configured for automatic deployment from the GitHub repository.
