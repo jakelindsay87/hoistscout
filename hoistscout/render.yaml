@@ -1,0 +1,69 @@
+services:
+  # Backend API Service
+  - type: web
+    name: hoistscout-api
+    runtime: docker
+    repo: https://github.com/jakelindsay87/hoistscout
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hoistscout-db
+          property: connectionString
+      - key: REDIS_URL
+        value: redis://red-d1hljoruibrs73fe7vkg:6379
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    healthCheckPath: /api/health
+    autoDeploy: true
+    plan: starter
+
+  # Frontend Service
+  - type: web
+    name: hoistscout-frontend
+    runtime: docker
+    repo: https://github.com/jakelindsay87/hoistscout
+    dockerfilePath: ./frontend/Dockerfile
+    buildCommand: docker build --build-arg NEXT_PUBLIC_API_URL=https://hoistscout-api.onrender.com -f ./frontend/Dockerfile .
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://hoistscout-api.onrender.com
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=512"
+    autoDeploy: true
+    plan: starter
+
+  # Worker Service for background tasks
+  - type: worker
+    name: hoistscout-worker
+    runtime: docker
+    repo: https://github.com/jakelindsay87/hoistscout
+    dockerfilePath: ./backend/Dockerfile
+    dockerCommand: python -m app.worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hoistscout-db
+          property: connectionString
+      - key: REDIS_URL
+        value: redis://red-d1hljoruibrs73fe7vkg:6379
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    autoDeploy: true
+    plan: starter
+
+# Database
+databases:
+  - name: hoistscout-db
+    databaseName: hoistscout
+    user: hoistscout_user
+    plan: free
+    postgresMajorVersion: 16
