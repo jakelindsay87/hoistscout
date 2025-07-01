@@ -7,9 +7,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the hoistscout backend code
-COPY hoistscout/backend/app /app/app
-COPY hoistscout/pyproject.toml /app/
+# Copy the backend code
+COPY backend/hoistscraper /app/app
+COPY backend/pyproject.toml /app/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir \

@@ -6,8 +6,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files
-COPY hoistscout/frontend/package.json ./
-COPY hoistscout/frontend/package-lock.json* ./
+COPY frontend/package.json ./
+COPY frontend/package-lock.json* ./
 
 # Install dependencies
 RUN npm ci || npm install
@@ -16,7 +16,7 @@ RUN npm ci || npm install
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY hoistscout/frontend ./
+COPY frontend ./
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED 1
