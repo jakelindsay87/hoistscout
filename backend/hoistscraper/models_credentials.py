@@ -32,3 +32,17 @@ class WebsiteCredentialCreate(SQLModel):
     auth_type: str = "basic"
     additional_fields: Optional[str] = None
     notes: Optional[str] = None
+
+
+class WebsiteCredentialRead(SQLModel):
+    """Model for reading website credentials (without password)."""
+    id: int
+    website_id: int
+    username: str
+    auth_type: str
+    additional_fields: Optional[str] = None
+    notes: Optional[str] = None
+    is_valid: bool
+    created_at: datetime
+    updated_at: datetime
+    last_used_at: Optional[datetime] = None

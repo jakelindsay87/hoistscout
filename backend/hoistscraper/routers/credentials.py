@@ -6,13 +6,13 @@ from sqlmodel import Session, select
 from loguru import logger
 
 from hoistscraper import db
-from hoistscraper.models import (
-    Website,
+from hoistscraper.models import Website
+from hoistscraper.models_credentials import (
     WebsiteCredential,
     WebsiteCredentialCreate,
     WebsiteCredentialRead
 )
-from hoistscraper.auth import store_website_credential, credential_manager
+from hoistscraper.auth.credential_manager import credential_manager
 
 
 router = APIRouter(prefix="/api/credentials", tags=["credentials"])

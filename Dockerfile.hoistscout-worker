@@ -16,6 +16,7 @@ COPY backend/__init__.py /app/__init__.py
 ENV PYTHONPATH=/app
 
 # Install Python dependencies
+# First install core dependencies
 RUN pip install --no-cache-dir \
     celery[redis]==5.3.0 \
     redis==5.0.1 \
@@ -24,11 +25,23 @@ RUN pip install --no-cache-dir \
     pydantic==2.10.2 \
     pydantic-settings==2.6.1 \
     playwright==1.43.0 \
-    scrapegraphai==1.60.0 \
     httpx==0.26.0 \
     python-dotenv==1.0.1 \
     loguru==0.7.2 \
-    tenacity==8.2.3
+    tenacity==8.2.3 \
+    beautifulsoup4==4.12.0 \
+    lxml==5.1.0
+
+# Install scrapegraphai with specific langchain versions to avoid resolution issues
+RUN pip install --no-cache-dir \
+    langchain==0.3.0 \
+    langchain-core==0.3.0 \
+    langchain-community==0.3.0 \
+    langsmith==0.1.125
+
+# Finally install scrapegraphai without deps first, then force reinstall with deps
+RUN pip install --no-cache-dir --no-deps scrapegraphai==1.60.0 && \
+    pip install --no-cache-dir scrapegraphai==1.60.0 || true
 
 # Install Playwright browsers
 RUN playwright install chromium
