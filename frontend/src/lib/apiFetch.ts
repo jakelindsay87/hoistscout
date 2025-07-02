@@ -1,3 +1,5 @@
+import { getApiUrl } from '@/config/api'
+
 /**
  * Custom error class for API errors
  */
@@ -38,33 +40,7 @@ export async function apiFetch<T = any>(
     ...fetchOptions
   } = options
 
-  // Get base URL - use runtime detection for better deployment handling
-  const getBaseUrl = () => {
-    // Use environment variable if set (preferred method)
-    if (process.env.NEXT_PUBLIC_API_URL) {
-      return process.env.NEXT_PUBLIC_API_URL
-    }
-    
-    // In browser, check if we're on localhost
-    if (typeof window !== 'undefined') {
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'http://localhost:8000'
-      }
-      // For Render deployment, always use the production backend
-      if (window.location.hostname.includes('onrender.com')) {
-        // Check if this is the hoistscout deployment
-        if (window.location.hostname.includes('hoistscout')) {
-          return 'https://hoistscout-api.onrender.com'
-        }
-        return 'https://hoistscraper.onrender.com'
-      }
-    }
-    
-    // Default fallback
-    return 'http://localhost:8000'
-  }
-  
-  const baseUrl = getBaseUrl()
+  const baseUrl = getApiUrl()
   const url = `${baseUrl}${path}`
   
   // Log API calls in development

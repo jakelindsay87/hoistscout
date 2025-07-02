@@ -1,22 +1,37 @@
 {
-  "total_tests": 21,
-  "passed": 6,
-  "failed": 15,
+  "total_tests": 26,
+  "passed": 7,
+  "failed": 19,
   "errors": [
     {
-      "endpoint": "POST /api/auth/token",
+      "endpoint": "GET /api/auth/me",
       "status": 404,
       "response": "{\"detail\":\"Not Found\"}"
     },
     {
-      "endpoint": "POST /api/auth/token",
-      "status": 404,
-      "response": "{\"detail\":\"Not Found\"}"
+      "endpoint": "POST /api/auth/login",
+      "status": 401,
+      "response": "{\"detail\":\"Incorrect email or password\"}"
     },
     {
       "endpoint": "POST /api/auth/register",
       "status": 422,
       "response": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"email\"],\"msg\":\"value is not a valid email address: An email address must have an @-sign.\",\"input\":\"not-an-email\",\"ctx\":{\"reason\":\"An email address must have an @-sign.\"}}]}"
+    },
+    {
+      "endpoint": "POST /api/websites",
+      "status": 307,
+      "response": null
+    },
+    {
+      "endpoint": "POST /api/websites",
+      "status": 307,
+      "response": null
+    },
+    {
+      "endpoint": "POST /api/websites",
+      "status": 307,
+      "response": null
     },
     {
       "endpoint": "GET /api/opportunities",
@@ -31,12 +46,17 @@
     {
       "endpoint": "GET /api/opportunities/search?query=innovation",
       "status": 401,
-      "response": "{\"detail\":\"Not authenticated\"}"
+      "response": "{\"detail\":\"Could not validate credentials\"}"
     },
     {
       "endpoint": "GET /api/opportunities/99999",
       "status": 401,
-      "response": "{\"detail\":\"Not authenticated\"}"
+      "response": "{\"detail\":\"Could not validate credentials\"}"
+    },
+    {
+      "endpoint": "POST /api/websites",
+      "status": 307,
+      "response": null
     },
     {
       "endpoint": "GET /api/nonexistent",
@@ -46,7 +66,7 @@
     {
       "endpoint": "GET /api/websites/99999",
       "status": 401,
-      "response": "{\"detail\":\"Not authenticated\"}"
+      "response": "{\"detail\":\"Could not validate credentials\"}"
     },
     {
       "endpoint": "POST /api/health",

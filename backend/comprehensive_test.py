@@ -157,7 +157,7 @@ class APITester:
             }
             success, token_data = await self.test_endpoint(
                 "POST", 
-                "/api/auth/token",
+                "/api/auth/login",
                 data=login_data,
                 headers={"Content-Type": "application/x-www-form-urlencoded"}
             )
@@ -173,7 +173,7 @@ class APITester:
             login_data["password"] = "WrongPassword"
             await self.test_endpoint(
                 "POST",
-                "/api/auth/token", 
+                "/api/auth/login", 
                 data=login_data,
                 headers={"Content-Type": "application/x-www-form-urlencoded"}
             )
