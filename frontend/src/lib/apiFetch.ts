@@ -52,6 +52,10 @@ export async function apiFetch<T = any>(
       }
       // For Render deployment, always use the production backend
       if (window.location.hostname.includes('onrender.com')) {
+        // Check if this is the hoistscout deployment
+        if (window.location.hostname.includes('hoistscout')) {
+          return 'https://hoistscout-api.onrender.com'
+        }
         return 'https://hoistscraper.onrender.com'
       }
     }
