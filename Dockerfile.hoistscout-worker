@@ -24,7 +24,7 @@ RUN pip install --no-cache-dir \
     pydantic==2.5.3 \
     pydantic-settings==2.1.0 \
     playwright==1.41.0 \
-    scrapegraphai[all]==0.15.0 \
+    scrapegraphai==1.60.0 \
     httpx==0.26.0 \
     python-dotenv==1.0.0 \
     loguru==0.7.2 \

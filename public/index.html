@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HoistScout - Funding Opportunity Platform</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f9fafb;
+        }
+        h1, h2 {
+            color: #111827;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .links {
+            margin-top: 30px;
+        }
+        .links a {
+            display: inline-block;
+            margin-right: 20px;
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+        .status {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #10b981;
+            color: white;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 HoistScout</h1>
+        <p><strong>Your comprehensive funding opportunity discovery platform</strong></p>
+        
+        <div class="status">
+            <span class="badge">LIVE</span>
+            <p>HoistScout is actively monitoring and collecting funding opportunities from various sources.</p>
+        </div>
+
+        <h2>Services</h2>
+        <div class="links">
+            <a href="https://hoistscout-api.onrender.com/docs">📚 API Documentation</a>
+            <a href="https://hoistscout-frontend.onrender.com">🖥️ Web Application</a>
+        </div>
+
+        <h2>About</h2>
+        <p>HoistScout automatically discovers and aggregates funding opportunities including:</p>
+        <ul>
+            <li>Government grants and tenders</li>
+            <li>Foundation funding programs</li>
+            <li>Corporate sponsorships</li>
+            <li>Research grants</li>
+        </ul>
+
+        <h2>Features</h2>
+        <ul>
+            <li>🔍 Automated web scraping of funding sources</li>
+            <li>📊 Real-time opportunity tracking</li>
+            <li>🔔 Email notifications for new opportunities</li>
+            <li>🏷️ Smart categorization and tagging</li>
+            <li>📱 Responsive web interface</li>
+        </ul>
+
+        <h2>Status</h2>
+        <p>All systems operational. Last check: <span id="timestamp"></span></p>
+    </div>
+
+    <script>
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>

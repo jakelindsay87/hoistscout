@@ -9,8 +9,6 @@ RUN apt-get update && apt-get install -y \
 
 # Copy the backend code
 COPY backend/hoistscraper /app/hoistscraper
-COPY backend/alembic.ini /app/alembic.ini
-COPY backend/alembic /app/alembic
 COPY backend/pyproject.toml /app/pyproject.toml
 COPY backend/__init__.py /app/__init__.py
 
