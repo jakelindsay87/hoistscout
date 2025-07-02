@@ -1,4 +1,4 @@
-"""Credential models stub - placeholder for future implementation."""
+"""Credential models for secure storage of website authentication data."""
 
 from sqlmodel import SQLModel, Field
 from typing import Optional
@@ -9,8 +9,12 @@ class WebsiteCredentialBase(SQLModel):
     """Base model for website credentials."""
     website_id: int
     username: str
-    encrypted_password: str
-    encrypted_token: Optional[str] = None
+    password_encrypted: str  # Changed from encrypted_password to match credential_manager.py
+    auth_type: str = "basic"
+    additional_fields: Optional[str] = None  # JSON string for extra auth fields
+    notes: Optional[str] = None
+    is_valid: bool = True
+    last_used_at: Optional[datetime] = None
 
 
 class WebsiteCredential(WebsiteCredentialBase, table=True):
@@ -20,7 +24,11 @@ class WebsiteCredential(WebsiteCredentialBase, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class WebsiteCredentialCreate(WebsiteCredentialBase):
+class WebsiteCredentialCreate(SQLModel):
     """Model for creating website credentials."""
-    password: str
-    token: Optional[str] = None
+    website_id: int
+    username: str
+    password: str  # Plain text, will be encrypted before storage
+    auth_type: str = "basic"
+    additional_fields: Optional[str] = None
+    notes: Optional[str] = None
