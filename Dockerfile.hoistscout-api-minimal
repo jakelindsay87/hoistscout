@@ -28,6 +28,14 @@ def health():\n\
         "has_redis": bool(os.getenv("REDIS_URL"))\n\
     }\n\
 \n\
+@app.get("/api/health")\n\
+def api_health():\n\
+    return {\n\
+        "status": "healthy",\n\
+        "has_db": bool(os.getenv("DATABASE_URL")),\n\
+        "has_redis": bool(os.getenv("REDIS_URL"))\n\
+    }\n\
+\n\
 @app.get("/api/test")\n\
 def test():\n\
     return {"test": "successful"}' > /app/main.py
