@@ -4,7 +4,7 @@ services:
     name: hoistscout-api
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscout
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: backend/Dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -29,8 +29,8 @@ services:
     name: hoistscout-frontend
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscout
-    dockerfilePath: ./frontend/Dockerfile
-    buildCommand: docker build --build-arg NEXT_PUBLIC_API_URL=https://hoistscout-api.onrender.com -f ./frontend/Dockerfile .
+    dockerfilePath: frontend/Dockerfile
+    buildCommand: docker build --build-arg NEXT_PUBLIC_API_URL=https://hoistscout-api.onrender.com -f frontend/Dockerfile .
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://hoistscout-api.onrender.com
@@ -48,7 +48,7 @@ services:
     name: hoistscout-worker
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscout
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: backend/Dockerfile
     dockerCommand: celery -A app.worker worker --loglevel=info
     envVars:
       - key: DATABASE_URL
