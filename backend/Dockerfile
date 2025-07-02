@@ -63,6 +63,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Copy source code
 COPY . .
 
+# Set Python path
+ENV PYTHONPATH=/app
+
 # Install Playwright browsers
 RUN poetry run playwright install chromium
 
