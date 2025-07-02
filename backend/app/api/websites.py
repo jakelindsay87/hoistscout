@@ -39,8 +39,8 @@ async def list_websites(
 @router.post("/", response_model=WebsiteResponse)
 async def create_website(
     website_data: WebsiteCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_editor_role)]
+    current_user: Annotated[User, Depends(require_editor_role)],
+    db: AsyncSession = Depends(get_db)
 ):
     # Check if URL already exists
     stmt = select(Website).where(Website.url == str(website_data.url))
@@ -99,8 +99,8 @@ async def get_website(
 async def update_website(
     website_id: int,
     website_data: WebsiteUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_editor_role)]
+    current_user: Annotated[User, Depends(require_editor_role)],
+    db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Website).where(Website.id == website_id)
     result = await db.execute(stmt)
@@ -133,8 +133,8 @@ async def update_website(
 @router.delete("/{website_id}")
 async def delete_website(
     website_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_editor_role)]
+    current_user: Annotated[User, Depends(require_editor_role)],
+    db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Website).where(Website.id == website_id)
     result = await db.execute(stmt)
@@ -155,8 +155,8 @@ async def delete_website(
 @router.post("/{website_id}/test")
 async def test_website_scraping(
     website_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: Annotated[User, Depends(require_editor_role)]
+    current_user: Annotated[User, Depends(require_editor_role)],
+    db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Website).where(Website.id == website_id)
     result = await db.execute(stmt)
