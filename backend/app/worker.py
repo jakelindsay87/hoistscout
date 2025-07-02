@@ -83,10 +83,10 @@ def scrape_website_task(self, website_id: int):
                 
                 # Import and run scraper (lazy import to avoid startup issues)
                 try:
-                    from .core import BulletproofTenderScraper
+                    from .core.scraper import BulletproofTenderScraper
                     scraper = BulletproofTenderScraper()
                     result = await scraper.scrape_website(website)
-                except ImportError as e:
+                except (ImportError, ModuleNotFoundError) as e:
                     # If scraper not available, return empty result
                     from datetime import datetime
                     result = type('obj', (object,), {
@@ -154,10 +154,10 @@ def process_pdf_task(document_id: int):
                 
                 # Process PDF (lazy import)
                 try:
-                    from .core import PDFProcessor
+                    from .core.pdf_processor import PDFProcessor
                     processor = PDFProcessor()
                     # Implement PDF processing logic
-                except ImportError as e:
+                except (ImportError, ModuleNotFoundError) as e:
                     # PDF processing not available
                     pass
                 
