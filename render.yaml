@@ -1,154 +1,73 @@
 services:
-  # Redis Service for job queue
-  - type: pserv
-    name: hoistscraper-redis
-    runtime: docker
-    repo: https://github.com/jakelindsay87/hoistscraper
-    dockerfilePath: ./redis/Dockerfile
-    dockerCommand: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --bind 0.0.0.0 --protected-mode no
-    plan: starter
-    
-  # Worker Service for background scraping
-  - type: worker
-    name: hoistscraper-worker
-    runtime: docker
-    repo: https://github.com/jakelindsay87/hoistscraper
-    dockerfilePath: ./backend/Dockerfile.worker
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: hoistscraper-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: pserv
-          name: hoistscraper-redis
-          property: hostport
-      - key: DATA_DIR
-        value: /data
-    disk:
-      name: worker-data
-      mountPath: /data
-      sizeGB: 10
-      
-  # Ollama Service - Core LLM for extraction
-  - type: web
-    name: ollama
-    runtime: docker
-    repo: https://github.com/jakelindsay87/hoistscraper
-    dockerfilePath: ./ollama/Dockerfile
-    disk:
-      name: ollama-data
-      mountPath: /root/.ollama
-      sizeGB: 10
-    autoDeploy: false
-    plan: standard  # Need more memory for Ollama
-    envVars:
-      - key: OLLAMA_MODELS
-        value: mistral:7b-q4_K_M
-    healthCheckPath: /api/tags
-    
   # Backend API Service
   - type: web
-    name: hoistscraper
+    name: hoistscout-api
     runtime: docker
-    repo: https://github.com/jakelindsay87/hoistscraper
-    dockerfilePath: ./backend/Dockerfile
+    repo: https://github.com/jakelindsay87/hoistscout
+    dockerfilePath: backend/Dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: hoistscraper-db
+          name: hoistscout-db
           property: connectionString
       - key: REDIS_URL
-        fromService:
-          type: pserv
-          name: hoistscraper-redis
-          property: hostport
-      - key: CRAWL_CONCURRENCY
-        value: "8"
-      - key: SMTP_SERVER
-        value: smtp.gmail.com
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
-        sync: false # Set this in Render dashboard
-      - key: SMTP_PASSWORD
-        sync: false # Set this in Render dashboard
-      - key: NOTIFY_EMAIL
-        sync: false # Set this in Render dashboard
-      - key: ANALYZE_TERMS
-        value: "true"
-      - key: OLLAMA_HOST
-        value: http://ollama:11434
-      - key: RENDER
-        value: "true"
-      - key: DATA_DIR
-        value: /data
-    healthCheckPath: /health
-    disk:
-      name: api-data
-      mountPath: /data
-      sizeGB: 10
-    
+        value: redis://red-d1hljoruibrs73fe7vkg:6379
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONPATH
+        value: "/app"
+    healthCheckPath: /api/health
+    autoDeploy: true
+    plan: starter
+
   # Frontend Service
   - type: web
-    name: hoistscraper-fe
+    name: hoistscout-frontend
     runtime: docker
-    repo: https://github.com/jakelindsay87/hoistscraper
-    dockerfilePath: ./frontend/Dockerfile
-    # Remove buildFilter to ensure all changes trigger rebuilds
-    dockerCommand: ""
-    buildCommand: docker build --build-arg NEXT_PUBLIC_API_URL=https://hoistscraper.onrender.com -f ./frontend/Dockerfile .
+    repo: https://github.com/jakelindsay87/hoistscout
+    dockerfilePath: frontend/Dockerfile
+    buildCommand: docker build --build-arg NEXT_PUBLIC_API_URL=https://hoistscout-api.onrender.com -f frontend/Dockerfile .
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://hoistscraper.onrender.com
+        value: https://hoistscout-api.onrender.com
       - key: NODE_ENV
         value: production
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
-      # Add cache-busting
-      - key: BUILD_ID
-        generateValue: true
-      # Ensure proper memory allocation
       - key: NODE_OPTIONS
         value: "--max-old-space-size=512"
-    
-  # Daily Crawl Cron Job
-  - type: cron
-    name: daily-crawl
+    autoDeploy: true
+    plan: starter
+
+  # Worker Service for background tasks
+  - type: worker
+    name: hoistscout-worker
     runtime: docker
-    repo: https://github.com/jakelindsay87/hoistscraper
-    dockerfilePath: ./backend/Dockerfile
-    dockerCommand: python scripts/run_crawl.py --config sites.yml
-    schedule: "0 2 * * *"  # Run at 2 AM daily
+    repo: https://github.com/jakelindsay87/hoistscout
+    dockerfilePath: backend/Dockerfile
+    dockerCommand: celery -A app.worker worker --loglevel=info
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: hoistscraper-db
+          name: hoistscout-db
           property: connectionString
-      - key: OLLAMA_HOST
-        value: http://ollama:11434
-      - key: CRAWL_CONCURRENCY
-        value: "8"
-      - key: ANALYZE_TERMS
-        value: "true"
-      - key: SMTP_SERVER
-        value: smtp.gmail.com
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
-        sync: false # Set this in Render dashboard
-      - key: SMTP_PASSWORD
-        sync: false # Set this in Render dashboard
-      - key: NOTIFY_EMAIL
-        sync: false # Set this in Render dashboard
-      - key: RENDER
-        value: "true"
+      - key: REDIS_URL
+        value: redis://red-d1hljoruibrs73fe7vkg:6379
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONPATH
+        value: "/app"
+    autoDeploy: true
+    plan: starter
 
-# Databases
+# Database
 databases:
-  - name: hoistscraper-db
-    databaseName: hoistscraper
-    user: hoistscraper_user
+  - name: hoistscout-db
+    databaseName: hoistscout
+    user: hoistscout_user
     plan: free
-    postgresMajorVersion: 16 
+    postgresMajorVersion: 16
