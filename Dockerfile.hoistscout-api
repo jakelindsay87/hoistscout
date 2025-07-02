@@ -8,10 +8,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the backend code
-COPY backend/hoistscraper /app/app
+COPY backend/hoistscraper /app/hoistscraper
 COPY backend/alembic.ini /app/alembic.ini
 COPY backend/alembic /app/alembic
 COPY backend/pyproject.toml /app/pyproject.toml
+COPY backend/__init__.py /app/__init__.py
 
 # Install Python dependencies
 RUN pip install --no-cache-dir \
@@ -31,13 +32,11 @@ RUN pip install --no-cache-dir \
     python-dotenv==1.0.0 \
     loguru==0.7.2
 
-# Create app directory structure and ensure __init__.py files
-RUN mkdir -p /app/app && \
-    touch /app/__init__.py && \
-    touch /app/app/__init__.py
+# Set Python path
+ENV PYTHONPATH=/app
 
 # Expose port
 EXPOSE 10000
 
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]
+CMD ["uvicorn", "hoistscraper.main:app", "--host", "0.0.0.0", "--port", "10000"]

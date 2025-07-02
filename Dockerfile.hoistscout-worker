@@ -8,8 +8,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the backend code
-COPY backend/hoistscraper /app/app
-COPY backend/pyproject.toml /app/
+COPY backend/hoistscraper /app/hoistscraper
+COPY backend/pyproject.toml /app/pyproject.toml
+COPY backend/__init__.py /app/__init__.py
+
+# Set Python path
+ENV PYTHONPATH=/app
 
 # Install Python dependencies
 RUN pip install --no-cache-dir \
@@ -31,4 +35,4 @@ RUN playwright install chromium
 RUN playwright install-deps
 
 # Run the worker
-CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info"]
+CMD ["python", "-m", "celery", "-A", "hoistscraper.worker", "worker", "--loglevel=info"]
