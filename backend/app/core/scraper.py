@@ -10,10 +10,10 @@ from loguru import logger
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-# Try to import scrapegraph-ai, but don't fail if not available
+# Try to import scrapegraphai, but don't fail if not available
 try:
-    from scrapegraph_ai import SmartScraperGraph
-    from scrapegraph_ai.graphs import SearchGraph
+    from scrapegraphai import SmartScraperGraph
+    from scrapegraphai.graphs import SearchGraph
     SCRAPEGRAPH_AVAILABLE = True
 except ImportError:
     SmartScraperGraph = None
