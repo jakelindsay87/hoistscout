@@ -1,8 +1,9 @@
-#!/bin/bash
+#\!/bin/bash
 
-# Deployment Verification Script for HoistScraper
+# Deployment Verification Script for HoistScout
+# This script checks all critical paths and configurations before deployment
 
-echo "=== HoistScraper Deployment Verification ==="
+echo "=== HoistScout Deployment Verification ==="
 echo
 
 # Colors for output
@@ -11,87 +12,154 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# API Key (update this after setting in Render)
-API_KEY="Qwl5vPbcrDnhci4Q6MzPPKLRahoJ-rP7j9F3eQzXqpQ"
-BACKEND_URL="https://hoistscraper.onrender.com"
-FRONTEND_URL="https://hoistscraper-1-wf9y.onrender.com"
+# Function to check if file exists
+check_file() {
+    if [ -f "$1" ]; then
+        echo -e "${GREEN}✓${NC} $1 exists"
+        return 0
+    else
+        echo -e "${RED}✗${NC} $1 missing"
+        return 1
+    fi
+}
 
-echo "1. Testing Backend Health Check..."
-if curl -s "${BACKEND_URL}/health" | grep -q "healthy"; then
-    echo -e "${GREEN}✓ Backend is healthy${NC}"
+# Function to check directory
+check_dir() {
+    if [ -d "$1" ]; then
+        echo -e "${GREEN}✓${NC} $1 directory exists"
+        return 0
+    else
+        echo -e "${RED}✗${NC} $1 directory missing"
+        return 1
+    fi
+}
+
+# Track overall status
+ERRORS=0
+
+echo "1. Checking Repository Structure"
+echo "================================"
+
+# Root level checks
+check_file "render.yaml" || ((ERRORS++))
+check_dir "backend" || ((ERRORS++))
+check_dir "frontend" || ((ERRORS++))
+
+echo
+echo "2. Checking Backend Structure"
+echo "============================="
+
+# Backend checks
+check_file "backend/Dockerfile" || ((ERRORS++))
+check_file "backend/pyproject.toml" || ((ERRORS++))
+check_dir "backend/app" || ((ERRORS++))
+check_file "backend/app/__init__.py" || ((ERRORS++))
+check_file "backend/app/main.py" || ((ERRORS++))
+check_file "backend/app/worker.py" || ((ERRORS++))
+check_dir "backend/app/api" || ((ERRORS++))
+check_dir "backend/app/core" || ((ERRORS++))
+check_dir "backend/app/models" || ((ERRORS++))
+
+# Check for old hoistscraper code
+if [ -d "backend/hoistscraper" ]; then
+    echo -e "${RED}✗${NC} Old hoistscraper directory still exists\!"
+    ((ERRORS++))
 else
-    echo -e "${RED}✗ Backend health check failed${NC}"
+    echo -e "${GREEN}✓${NC} No old hoistscraper code found"
 fi
-echo
 
-echo "2. Testing Security Headers..."
-HEADERS=$(curl -sI "${BACKEND_URL}/health")
-if echo "$HEADERS" | grep -q "X-Content-Type-Options: nosniff"; then
-    echo -e "${GREEN}✓ Security headers present${NC}"
+echo
+echo "3. Checking Frontend Structure"
+echo "=============================="
+
+# Frontend checks
+check_file "frontend/Dockerfile" || ((ERRORS++))
+check_file "frontend/package.json" || ((ERRORS++))
+check_file "frontend/package-lock.json" || ((ERRORS++))
+check_file "frontend/next.config.js" || ((ERRORS++))
+check_dir "frontend/src" || ((ERRORS++))
+check_dir "frontend/public" || ((ERRORS++))
+
+echo
+echo "4. Checking Dockerfile Paths"
+echo "============================"
+
+# Check backend Dockerfile for correct paths
+echo -n "Backend Dockerfile COPY paths: "
+if grep -q "COPY backend/" backend/Dockerfile; then
+    echo -e "${GREEN}✓${NC} Using correct 'backend/' prefix"
 else
-    echo -e "${RED}✗ Security headers missing${NC}"
+    echo -e "${RED}✗${NC} Missing 'backend/' prefix in COPY commands"
+    ((ERRORS++))
 fi
-echo
 
-echo "3. Testing Admin Endpoint Without Auth..."
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${BACKEND_URL}/api/admin/clear-database")
-if [ "$RESPONSE" = "401" ]; then
-    echo -e "${GREEN}✓ Admin endpoint properly protected (401 Unauthorized)${NC}"
+# Check frontend Dockerfile for correct paths
+echo -n "Frontend Dockerfile COPY paths: "
+if grep -q "COPY frontend/" frontend/Dockerfile; then
+    echo -e "${GREEN}✓${NC} Using correct 'frontend/' prefix"
 else
-    echo -e "${RED}✗ Admin endpoint not protected! Response: $RESPONSE${NC}"
+    echo -e "${RED}✗${NC} Missing 'frontend/' prefix in COPY commands"
+    ((ERRORS++))
 fi
-echo
 
-echo "4. Testing Admin Endpoint With Auth..."
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X GET "${BACKEND_URL}/api/admin/stats" -H "X-API-Key: ${API_KEY}")
-if [ "$RESPONSE" = "200" ]; then
-    echo -e "${GREEN}✓ Admin authentication working${NC}"
+echo
+echo "5. Checking render.yaml Configuration"
+echo "====================================="
+
+# Check dockerfilePath values
+echo -n "Backend dockerfilePath: "
+if grep -q "dockerfilePath: backend/Dockerfile" render.yaml; then
+    echo -e "${GREEN}✓${NC} Correct path (no leading ./)"
 else
-    echo -e "${YELLOW}⚠ Admin auth failed (Response: $RESPONSE) - Check if API key is set in Render${NC}"
+    echo -e "${RED}✗${NC} Incorrect dockerfilePath"
+    ((ERRORS++))
 fi
-echo
 
-echo "5. Testing Debug Endpoint (Should be blocked in production)..."
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/debug")
-if [ "$RESPONSE" = "404" ]; then
-    echo -e "${GREEN}✓ Debug endpoints properly blocked${NC}"
+echo -n "Frontend dockerfilePath: "
+if grep -q "dockerfilePath: frontend/Dockerfile" render.yaml; then
+    echo -e "${GREEN}✓${NC} Correct path (no leading ./)"
 else
-    echo -e "${RED}✗ Debug endpoint accessible! Response: $RESPONSE${NC}"
+    echo -e "${RED}✗${NC} Incorrect dockerfilePath"
+    ((ERRORS++))
 fi
-echo
 
-echo "6. Testing API Documentation (Should be disabled in production)..."
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/docs")
-if [ "$RESPONSE" = "404" ]; then
-    echo -e "${GREEN}✓ API docs properly disabled${NC}"
+echo -n "Worker dockerCommand: "
+if grep -q "dockerCommand: celery -A app.worker" render.yaml; then
+    echo -e "${GREEN}✓${NC} Correct worker command"
 else
-    echo -e "${RED}✗ API docs accessible! Response: $RESPONSE${NC}"
+    echo -e "${RED}✗${NC} Incorrect worker command"
+    ((ERRORS++))
 fi
-echo
 
-echo "7. Testing Frontend..."
-if curl -s "${FRONTEND_URL}" | grep -q "HoistScraper"; then
-    echo -e "${GREEN}✓ Frontend is accessible${NC}"
+echo
+echo "6. Checking Dependencies"
+echo "======================="
+
+# Check pyproject.toml for problematic dependencies
+echo -n "Pre-commit version: "
+if grep -q 'pre-commit = "\^3.3.0"' backend/pyproject.toml; then
+    echo -e "${GREEN}✓${NC} Valid version (^3.3.0)"
 else
-    echo -e "${RED}✗ Frontend not accessible${NC}"
+    echo -e "${YELLOW}⚠${NC} Check pre-commit version in pyproject.toml"
 fi
-echo
 
-echo "8. Testing CORS Headers..."
-RESPONSE=$(curl -sI -X OPTIONS "${BACKEND_URL}/api/websites" \
-    -H "Origin: ${FRONTEND_URL}" \
-    -H "Access-Control-Request-Method: GET")
-if echo "$RESPONSE" | grep -q "Access-Control-Allow-Origin"; then
-    echo -e "${GREEN}✓ CORS properly configured${NC}"
+# Check if package.json has next dependency
+echo -n "Next.js dependency: "
+if grep -q '"next":' frontend/package.json; then
+    echo -e "${GREEN}✓${NC} Next.js is listed as dependency"
 else
-    echo -e "${RED}✗ CORS not configured${NC}"
+    echo -e "${RED}✗${NC} Next.js missing from dependencies"
+    ((ERRORS++))
 fi
-echo
 
-echo "=== Verification Complete ==="
 echo
-echo "Next Steps:"
-echo "1. If any tests failed, check the Render logs for errors"
-echo "2. Ensure ADMIN_API_KEY is set in Render environment variables"
-echo "3. Monitor the service for any issues"
-echo "4. Test the frontend functionality manually"
+echo "==============================="
+if [ $ERRORS -eq 0 ]; then
+    echo -e "${GREEN}✓ All checks passed\!${NC} Ready for deployment."
+else
+    echo -e "${RED}✗ Found $ERRORS errors.${NC} Fix these before deploying."
+fi
+echo "==============================="
+
+exit $ERRORS
+EOF < /dev/null
