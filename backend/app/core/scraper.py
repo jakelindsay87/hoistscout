@@ -8,8 +8,8 @@ from datetime import datetime
 import hashlib
 from loguru import logger
 
-from scrapegraph_ai import SmartScraperGraph
-from scrapegraph_ai.graphs import SearchGraph
+from scrapegraphai import SmartScraperGraph
+from scrapegraphai.graphs import SearchGraph
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from .anti_detection import AntiDetectionManager

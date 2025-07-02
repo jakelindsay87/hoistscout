@@ -34,6 +34,10 @@ RUN poetry install --no-interaction --no-ansi
 # Copy application code from backend directory
 COPY backend/ /app
 
+# Install Playwright browsers and dependencies for scrapegraphai (as root)
+RUN poetry run playwright install-deps chromium
+RUN poetry run playwright install chromium
+
 # Set Python path
 ENV PYTHONPATH=/app
 
