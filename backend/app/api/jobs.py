@@ -13,7 +13,7 @@ from .auth import get_current_user
 router = APIRouter()
 
 
-def require_editor_role(current_user: User) -> User:
+def require_editor_role(current_user: User = Depends(get_current_user)):
     if current_user.role not in [UserRole.EDITOR, UserRole.ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -25,8 +25,8 @@ def require_editor_role(current_user: User) -> User:
 @router.post("/", response_model=JobResponse)
 async def create_scraping_job(
     job_data: JobCreate,
-    current_user: User = Depends(require_editor_role),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_editor_role)
 ):
     # Create job
     job = ScrapingJob(
@@ -92,8 +92,8 @@ async def get_job(
 @router.post("/{job_id}/cancel")
 async def cancel_job(
     job_id: int,
-    current_user: User = Depends(require_editor_role),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_editor_role)
 ):
     stmt = select(ScrapingJob).where(ScrapingJob.id == job_id)
     result = await db.execute(stmt)

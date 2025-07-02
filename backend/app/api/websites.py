@@ -14,7 +14,7 @@ router = APIRouter()
 credential_manager = SecureCredentialManager()
 
 
-def require_editor_role(current_user: User) -> User:
+def require_editor_role(current_user: User = Depends(get_current_user)):
     if current_user.role not in [UserRole.EDITOR, UserRole.ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -39,8 +39,8 @@ async def list_websites(
 @router.post("/", response_model=WebsiteResponse)
 async def create_website(
     website_data: WebsiteCreate,
-    current_user: Annotated[User, Depends(require_editor_role)],
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_editor_role)
 ):
     # Check if URL already exists
     stmt = select(Website).where(Website.url == str(website_data.url))
@@ -99,8 +99,8 @@ async def get_website(
 async def update_website(
     website_id: int,
     website_data: WebsiteUpdate,
-    current_user: Annotated[User, Depends(require_editor_role)],
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_editor_role)
 ):
     stmt = select(Website).where(Website.id == website_id)
     result = await db.execute(stmt)
@@ -133,8 +133,8 @@ async def update_website(
 @router.delete("/{website_id}")
 async def delete_website(
     website_id: int,
-    current_user: Annotated[User, Depends(require_editor_role)],
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_editor_role)
 ):
     stmt = select(Website).where(Website.id == website_id)
     result = await db.execute(stmt)
@@ -155,8 +155,8 @@ async def delete_website(
 @router.post("/{website_id}/test")
 async def test_website_scraping(
     website_id: int,
-    current_user: Annotated[User, Depends(require_editor_role)],
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_editor_role)
 ):
     stmt = select(Website).where(Website.id == website_id)
     result = await db.execute(stmt)
