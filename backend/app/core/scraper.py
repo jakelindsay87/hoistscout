@@ -8,9 +8,17 @@ from datetime import datetime
 import hashlib
 from loguru import logger
 
-from scrapegraphai import SmartScraperGraph
-from scrapegraphai.graphs import SearchGraph
 from tenacity import retry, stop_after_attempt, wait_exponential
+
+# Try to import scrapegraphai, but don't fail if not available
+try:
+    from scrapegraphai import SmartScraperGraph
+    from scrapegraphai.graphs import SearchGraph
+    SCRAPEGRAPH_AVAILABLE = True
+except ImportError:
+    SmartScraperGraph = None
+    SearchGraph = None
+    SCRAPEGRAPH_AVAILABLE = False
 
 from .anti_detection import AntiDetectionManager
 from .pdf_processor import PDFProcessor
@@ -42,6 +50,10 @@ class BulletproofTenderScraper:
         """Initialize ScrapeGraphAI with Ollama configuration."""
         from ..config import get_settings
         settings = get_settings()
+        
+        if not SCRAPEGRAPH_AVAILABLE:
+            logger.warning("ScrapeGraphAI not installed - AI scraping disabled")
+            return None
         
         if not settings.ollama_base_url:
             logger.warning("Ollama not configured - AI scraping disabled")
@@ -111,7 +123,7 @@ class BulletproofTenderScraper:
             logger.info(f"Starting scrape for {website_config.url}")
             
             # Use SearchGraph for multi-page scraping
-            if website_config.is_search_based:
+            if website_config.is_search_based and SearchGraph:
                 graph = SearchGraph(
                     prompt=self._build_extraction_prompt(website_config),
                     llm_config=self.scraper.llm_config,
