@@ -10,14 +10,14 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY frontend/ .
 
 # Set environment variables for build optimization
 ENV NODE_ENV=production
@@ -28,7 +28,7 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build the Next.js application
-RUN npm run build
+RUN npx next build
 
 # Production image, copy all the files and run next
 FROM base AS runner

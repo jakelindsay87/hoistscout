@@ -19,8 +19,8 @@ RUN pip install poetry==1.7.1
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files
-COPY pyproject.toml poetry.lock* /app/
+# Copy dependency files from backend directory
+COPY backend/pyproject.toml backend/poetry.lock* /app/
 
 # Configure poetry to not create virtual env (we're in container)
 RUN poetry config virtualenvs.create false
@@ -28,8 +28,8 @@ RUN poetry config virtualenvs.create false
 # Install dependencies
 RUN poetry install --no-interaction --no-ansi
 
-# Copy application code
-COPY . /app
+# Copy application code from backend directory
+COPY backend/ /app
 
 # Set Python path
 ENV PYTHONPATH=/app
