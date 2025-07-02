@@ -11,9 +11,16 @@ from .models.base import Base
 
 settings = get_settings()
 
+# Convert postgresql:// to postgresql+asyncpg:// for async support
+database_url = settings.database_url
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+
 # Create async engine
 engine: AsyncEngine = create_async_engine(
-    settings.database_url,
+    database_url,
     echo=settings.debug,
     poolclass=NullPool if settings.environment == "test" else None,
     pool_pre_ping=True,
