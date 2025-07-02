@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from sqlalchemy import String, DateTime, Numeric, ForeignKey, Text, Float, BigInteger, Index
+from sqlalchemy import String, DateTime, Numeric, ForeignKey, Text, Float, BigInteger, Index, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from .base import Base, TimestampMixin
@@ -10,7 +10,8 @@ from .base import Base, TimestampMixin
 class Opportunity(Base, TimestampMixin):
     __tablename__ = "opportunities"
     __table_args__ = (
-        Index('idx_opportunities_search', 'title', 'description', postgresql_using='gin'),
+        # Use regular btree index for now, GIN requires special setup
+        Index('idx_opportunities_title', 'title'),
         Index('idx_opportunities_deadline', 'deadline'),
         Index('idx_opportunities_value', 'value'),
     )
