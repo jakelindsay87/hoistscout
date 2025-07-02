@@ -18,6 +18,8 @@ services:
         value: production
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: PYTHONPATH
+        value: "/app"
     healthCheckPath: /api/health
     autoDeploy: true
     plan: starter
@@ -57,6 +59,8 @@ services:
         value: redis://red-d1hljoruibrs73fe7vkg:6379
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: PYTHONPATH
+        value: "/app"
     autoDeploy: true
     plan: starter
 

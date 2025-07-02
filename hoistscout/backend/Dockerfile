@@ -31,6 +31,9 @@ RUN poetry install --no-interaction --no-ansi
 # Copy application code
 COPY . /app
 
+# Set Python path
+ENV PYTHONPATH=/app
+
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
