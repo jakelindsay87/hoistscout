@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getSession } from 'next-auth/react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -22,23 +22,23 @@ api.interceptors.request.use(async (config) => {
 // Auth API
 export const authApi = {
   login: (email: string, password: string) =>
-    api.post('/auth/login', new URLSearchParams({ username: email, password })),
+    api.post('/api/auth/login', new URLSearchParams({ username: email, password })),
   register: (data: { email: string; password: string; full_name?: string }) =>
-    api.post('/auth/register', data),
+    api.post('/api/auth/register', data),
   refresh: (refreshToken: string) =>
-    api.post('/auth/refresh', { refresh_token: refreshToken }),
-  getProfile: () => api.get('/auth/profile'),
+    api.post('/api/auth/refresh', { refresh_token: refreshToken }),
+  getProfile: () => api.get('/api/auth/profile'),
 };
 
 // Websites API
 export const websitesApi = {
   list: (params?: { skip?: number; limit?: number }) =>
-    api.get('/websites', { params }),
-  create: (data: any) => api.post('/websites', data),
-  get: (id: number) => api.get(`/websites/${id}`),
-  update: (id: number, data: any) => api.put(`/websites/${id}`, data),
-  delete: (id: number) => api.delete(`/websites/${id}`),
-  test: (id: number) => api.post(`/websites/${id}/test`),
+    api.get('/api/websites', { params }),
+  create: (data: any) => api.post('/api/websites', data),
+  get: (id: number) => api.get(`/api/websites/${id}`),
+  update: (id: number, data: any) => api.put(`/api/websites/${id}`, data),
+  delete: (id: number) => api.delete(`/api/websites/${id}`),
+  test: (id: number) => api.post(`/api/websites/${id}/test`),
 };
 
 // Opportunities API
@@ -54,30 +54,30 @@ export const opportunitiesApi = {
     website_ids?: string;
     limit?: number;
     offset?: number;
-  }) => api.get('/opportunities', { params }),
-  get: (id: number) => api.get(`/opportunities/${id}`),
-  stats: () => api.get('/opportunities/stats'),
-  export: (data: any) => api.post('/opportunities/export', data),
+  }) => api.get('/api/opportunities', { params }),
+  get: (id: number) => api.get(`/api/opportunities/${id}`),
+  stats: () => api.get('/api/opportunities/stats'),
+  export: (data: any) => api.post('/api/opportunities/export', data),
 };
 
 // Jobs API
 export const jobsApi = {
   create: (data: { website_id: number; job_type?: string; priority?: number }) =>
-    api.post('/scraping/jobs', data),
+    api.post('/api/scraping/jobs', data),
   list: (params?: {
     status?: string;
     website_id?: number;
     limit?: number;
     offset?: number;
-  }) => api.get('/scraping/jobs', { params }),
-  get: (id: number) => api.get(`/scraping/jobs/${id}`),
-  cancel: (id: number) => api.post(`/scraping/jobs/${id}/cancel`),
-  logs: (id: number) => api.get(`/scraping/jobs/${id}/logs`),
+  }) => api.get('/api/scraping/jobs', { params }),
+  get: (id: number) => api.get(`/api/scraping/jobs/${id}`),
+  cancel: (id: number) => api.post(`/api/scraping/jobs/${id}/cancel`),
+  logs: (id: number) => api.get(`/api/scraping/jobs/${id}/logs`),
 };
 
 // Health API
 export const healthApi = {
-  check: () => api.get('/health'),
-  ready: () => api.get('/health/ready'),
-  live: () => api.get('/health/live'),
+  check: () => api.get('/api/health'),
+  ready: () => api.get('/api/health/ready'),
+  live: () => api.get('/api/health/live'),
 };
