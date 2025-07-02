@@ -33,8 +33,12 @@ async def auto_seed_from_csv(csv_path: str):
     # Import here to avoid circular imports
     import sys
     import os
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from cli.import_csv import run
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from cli.import_csv import run
+    except ImportError:
+        logger.warning("CLI module not found, skipping CSV auto-seed functionality")
+        return
     
     # Check if path exists
     if not Path(csv_path).exists():
@@ -66,7 +70,10 @@ async def lifespan(app: FastAPI):
     logger.info("Application startup...")
     
     # Initialize Sentry for error tracking
-    init_sentry(app)
+    try:
+        init_sentry(app)
+    except Exception as e:
+        logger.warning(f"Sentry initialization failed: {e}, continuing without error tracking")
     
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
@@ -77,10 +84,15 @@ async def lifespan(app: FastAPI):
     logger.info(f"Connecting to database at: {database_url}")
         
     start_time = time.time()
-    db.create_db_and_tables()
-    duration = time.time() - start_time
-    logger.info("Database tables created.")
-    log_performance(logger, "database_initialization", duration)
+    try:
+        db.create_db_and_tables()
+        duration = time.time() - start_time
+        logger.info("Database tables created.")
+        log_performance(logger, "database_initialization", duration)
+    except Exception as e:
+        logger.error(f"Failed to create database tables: {e}")
+        # Re-raise as this is critical
+        raise
     
     # Auto-seed from CSV if configured
     csv_seed_path = os.getenv("CSV_SEED_PATH")
