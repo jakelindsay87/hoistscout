@@ -60,6 +60,9 @@ COPY --from=dependencies /app/.venv /app/.venv
 # Make sure to use venv
 ENV PATH="/app/.venv/bin:$PATH"
 
+# Copy pyproject.toml first (needed for module info)
+COPY pyproject.toml ./
+
 # Copy source code
 COPY . .
 
@@ -67,7 +70,7 @@ COPY . .
 ENV PYTHONPATH=/app
 
 # Install Playwright browsers
-RUN poetry run playwright install chromium
+RUN playwright install chromium
 
 # Create data directory for scraping results
 RUN mkdir -p /app/data
