@@ -1,0 +1,39 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install only essential packages
+RUN pip install --no-cache-dir \
+    fastapi==0.104.0 \
+    uvicorn[standard]==0.27.0 \
+    sqlmodel==0.0.16 \
+    psycopg2-binary==2.9.9 \
+    python-dotenv==1.0.1
+
+# Create a minimal API
+RUN echo 'from fastapi import FastAPI\n\
+import os\n\
+\n\
+app = FastAPI(title="HoistScout API", version="0.1.0")\n\
+\n\
+@app.get("/")\n\
+def root():\n\
+    return {"message": "HoistScout API", "status": "running"}\n\
+\n\
+@app.get("/health")\n\
+def health():\n\
+    return {\n\
+        "status": "healthy",\n\
+        "has_db": bool(os.getenv("DATABASE_URL")),\n\
+        "has_redis": bool(os.getenv("REDIS_URL"))\n\
+    }\n\
+\n\
+@app.get("/api/test")\n\
+def test():\n\
+    return {"test": "successful"}' > /app/main.py
+
+# Expose port
+EXPOSE 10000
+
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
