@@ -82,6 +82,30 @@ async def search_opportunities(
     return opportunities
 
 
+# Alias for search functionality
+@router.get("/search", response_model=List[OpportunityResponse])
+async def search_opportunities_alias(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    query: Optional[str] = Query(None, description="Search query"),
+    category: Optional[str] = None,
+    location: Optional[str] = None,
+    min_value: Optional[float] = None,
+    max_value: Optional[float] = None,
+    deadline_after: Optional[datetime] = None,
+    deadline_before: Optional[datetime] = None,
+    website_ids: Optional[str] = Query(None, description="Comma-separated website IDs"),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0)
+):
+    """Alias endpoint for search - delegates to main search endpoint"""
+    return await search_opportunities(
+        db, current_user, query, category, location, 
+        min_value, max_value, deadline_after, deadline_before,
+        website_ids, limit, offset
+    )
+
+
 @router.get("/stats")
 async def get_opportunity_stats(
     db: AsyncSession = Depends(get_db),

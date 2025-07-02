@@ -1,0 +1,83 @@
+{
+  "total_tests": 21,
+  "passed": 6,
+  "failed": 15,
+  "errors": [
+    {
+      "endpoint": "POST /api/auth/token",
+      "status": 404,
+      "response": "{\"detail\":\"Not Found\"}"
+    },
+    {
+      "endpoint": "POST /api/auth/token",
+      "status": 404,
+      "response": "{\"detail\":\"Not Found\"}"
+    },
+    {
+      "endpoint": "POST /api/auth/register",
+      "status": 422,
+      "response": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"email\"],\"msg\":\"value is not a valid email address: An email address must have an @-sign.\",\"input\":\"not-an-email\",\"ctx\":{\"reason\":\"An email address must have an @-sign.\"}}]}"
+    },
+    {
+      "endpoint": "GET /api/opportunities",
+      "status": 307,
+      "response": null
+    },
+    {
+      "endpoint": "GET /api/opportunities?category=technology&min_value=10000",
+      "status": 307,
+      "response": null
+    },
+    {
+      "endpoint": "GET /api/opportunities/search?query=innovation",
+      "status": 401,
+      "response": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "endpoint": "GET /api/opportunities/99999",
+      "status": 401,
+      "response": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "endpoint": "GET /api/nonexistent",
+      "status": 404,
+      "response": "{\"detail\":\"Not Found\"}"
+    },
+    {
+      "endpoint": "GET /api/websites/99999",
+      "status": 401,
+      "response": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "endpoint": "POST /api/health",
+      "status": 405,
+      "response": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    {
+      "endpoint": "POST /api/websites",
+      "status": 307,
+      "response": null
+    },
+    {
+      "endpoint": "POST /api/auth/register",
+      "status": 422,
+      "response": "{\"detail\":[{\"type\":\"json_invalid\",\"loc\":[\"body\",1],\"msg\":\"JSON decode error\",\"input\":{},\"ctx\":{\"error\":\"Expecting property name enclosed in double quotes\"}}]}"
+    },
+    {
+      "endpoint": "GET /api/opportunities?limit=10000&offset=0",
+      "status": 307,
+      "response": null
+    },
+    {
+      "endpoint": "GET /api/opportunities?limit=-1",
+      "status": 307,
+      "response": null
+    },
+    {
+      "endpoint": "GET /api/opportunities/search?query='; DROP TABLE opportunities; --",
+      "status": 401,
+      "response": "{\"detail\":\"Not authenticated\"}"
+    }
+  ],
+  "warnings": []
+}

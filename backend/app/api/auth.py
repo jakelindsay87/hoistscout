@@ -109,6 +109,16 @@ async def login(
     )
 
 
+# Alias for /login endpoint to maintain compatibility
+@router.post("/token", response_model=Token)
+async def token(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: AsyncSession = Depends(get_db)
+):
+    """Alias for /login endpoint for OAuth2 compatibility"""
+    return await login(form_data, db)
+
+
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
     refresh_token: str,
