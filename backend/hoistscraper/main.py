@@ -184,7 +184,8 @@ app.add_middleware(
         "http://localhost:3001",
         "http://localhost:3002",
         "http://frontend:3000",
-        "https://hoistscraper-fe.onrender.com"
+        "https://hoistscraper-fe.onrender.com",
+        "https://hoistscout-frontend.onrender.com"
     ],
     allow_credentials=True,
     allow_methods=["*"],
