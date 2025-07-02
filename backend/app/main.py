@@ -47,7 +47,7 @@ if settings.environment == "production":
     Instrumentator().instrument(app).expose(app)
 
 # Include routers
-app.include_router(health.router, tags=["health"])
+app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(websites.router, prefix="/api/websites", tags=["websites"])
 app.include_router(opportunities.router, prefix="/api/opportunities", tags=["opportunities"])
