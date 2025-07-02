@@ -40,7 +40,7 @@ fake-useragent = "^1.4.0"
 python-anticaptcha = "^1.0.0"
 undetected-chromedriver = "^3.5.4"
 asyncio-throttle = "^1.0.2"
-scrapegraphai = "^1.2.0"
+scrapegraph-ai = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
