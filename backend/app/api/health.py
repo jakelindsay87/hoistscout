@@ -1,13 +1,16 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, select, func
 import httpx
 import sys
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..database import get_db
 from ..config import get_settings
+from ..models.website import Website
+from ..models.job import ScrapingJob
+from ..models.opportunity import Opportunity
 
 router = APIRouter()
 settings = get_settings()
@@ -159,3 +162,55 @@ async def diagnostic_check():
         }
     
     return diagnostics
+
+
+@router.get("/stats")
+async def get_stats(db: AsyncSession = Depends(get_db)):
+    """Get dashboard statistics for the frontend."""
+    try:
+        # Get total sites count
+        sites_stmt = select(func.count(Website.id))
+        sites_result = await db.execute(sites_stmt)
+        total_sites = sites_result.scalar() or 0
+        
+        # Get total jobs count
+        jobs_stmt = select(func.count(ScrapingJob.id))
+        jobs_result = await db.execute(jobs_stmt)
+        total_jobs = jobs_result.scalar() or 0
+        
+        # Get total opportunities count
+        opps_stmt = select(func.count(Opportunity.id))
+        opps_result = await db.execute(opps_stmt)
+        total_opportunities = opps_result.scalar() or 0
+        
+        # Get jobs created this week
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        week_jobs_stmt = select(func.count(ScrapingJob.id)).where(
+            ScrapingJob.created_at >= week_ago
+        )
+        week_jobs_result = await db.execute(week_jobs_stmt)
+        jobs_this_week = week_jobs_result.scalar() or 0
+        
+        # Get last scrape time (most recent completed job)
+        last_scrape_stmt = select(ScrapingJob.completed_at).where(
+            ScrapingJob.completed_at.isnot(None)
+        ).order_by(ScrapingJob.completed_at.desc()).limit(1)
+        last_scrape_result = await db.execute(last_scrape_stmt)
+        last_scrape_time = last_scrape_result.scalar()
+        
+        return {
+            "total_sites": total_sites,
+            "total_jobs": total_jobs,
+            "total_opportunities": total_opportunities,
+            "jobs_this_week": jobs_this_week,
+            "last_scrape": last_scrape_time.isoformat() if last_scrape_time else None
+        }
+    except Exception as e:
+        # Return zeros if there's an error to prevent frontend from breaking
+        return {
+            "total_sites": 0,
+            "total_jobs": 0,
+            "total_opportunities": 0,
+            "jobs_this_week": 0,
+            "last_scrape": None
+        }
