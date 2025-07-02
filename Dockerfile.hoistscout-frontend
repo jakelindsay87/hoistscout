@@ -22,6 +22,13 @@ COPY frontend ./
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
 
+# Accept build argument for API URL
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+# Log the API URL during build
+RUN echo "Building with NEXT_PUBLIC_API_URL: $NEXT_PUBLIC_API_URL"
+
 RUN npm run build
 
 # Production image, copy all the files and run next
@@ -30,6 +37,10 @@ WORKDIR /app
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
+
+# Pass through the API URL to runtime
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
