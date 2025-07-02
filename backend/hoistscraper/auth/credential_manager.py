@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from sqlmodel import Session, select
 from loguru import logger
 
-from hoistscraper.models import WebsiteCredential, WebsiteCredentialCreate
+from hoistscraper.models_credentials import WebsiteCredential, WebsiteCredentialCreate
 
 
 class CredentialManager:
