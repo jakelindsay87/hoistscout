@@ -1,0 +1,7 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN echo "Build successful" > /app/status.txt
+
+CMD ["python", "-c", "print('Container is running')"]
