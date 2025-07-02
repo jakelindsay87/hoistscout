@@ -18,7 +18,7 @@ services:
         value: production
       - key: PYTHONUNBUFFERED
         value: "1"
-    healthCheckPath: /api/health
+    healthCheckPath: /health
     autoDeploy: true
     plan: starter
 
