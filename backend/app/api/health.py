@@ -40,15 +40,20 @@ async def readiness_check(db: AsyncSession = Depends(get_db)):
     except Exception:
         pass
     
-    # Check MinIO
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"http://{settings.minio_endpoint}/minio/health/ready")
-            checks["minio"] = response.status_code == 200
-    except Exception:
-        pass
+    # Check MinIO (only if configured)
+    if settings.minio_endpoint:
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"http://{settings.minio_endpoint}/minio/health/ready")
+                checks["minio"] = response.status_code == 200
+        except Exception:
+            pass
+    else:
+        checks["minio"] = None  # Not configured
     
-    all_healthy = all(checks.values())
+    # Only check services that are configured (not None)
+    configured_checks = {k: v for k, v in checks.items() if v is not None}
+    all_healthy = all(configured_checks.values()) if configured_checks else True
     return {
         "ready": all_healthy,
         "checks": checks

@@ -33,16 +33,26 @@ class PDFProcessor:
     def __init__(self):
         self.minio_client = self._init_minio()
         self.bucket_name = "tender-documents"
-        self._ensure_bucket()
+        if self.minio_client:
+            self._ensure_bucket()
         
-    def _init_minio(self) -> Minio:
+    def _init_minio(self) -> Optional[Minio]:
         """Initialize MinIO client."""
         import os
         
+        endpoint = os.getenv("MINIO_ENDPOINT")
+        access_key = os.getenv("MINIO_ACCESS_KEY")
+        secret_key = os.getenv("MINIO_SECRET_KEY")
+        
+        # Return None if MinIO is not configured
+        if not all([endpoint, access_key, secret_key]):
+            logger.warning("MinIO not configured - document storage disabled")
+            return None
+        
         return Minio(
-            endpoint=os.getenv("MINIO_ENDPOINT", "localhost:9000"),
-            access_key=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
-            secret_key=os.getenv("MINIO_SECRET_KEY", "minioadmin"),
+            endpoint=endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
             secure=False  # Set to True in production with HTTPS
         )
     

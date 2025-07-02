@@ -20,19 +20,19 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     
-    # MinIO
-    minio_endpoint: str
-    minio_access_key: str
-    minio_secret_key: str
+    # MinIO (optional for initial deployment)
+    minio_endpoint: Optional[str] = None
+    minio_access_key: Optional[str] = None
+    minio_secret_key: Optional[str] = None
     minio_bucket_name: str = "hoistscout-documents"
     minio_secure: bool = False
     
-    # Ollama
-    ollama_base_url: str = "http://localhost:11434"
+    # Ollama (optional for initial deployment)
+    ollama_base_url: Optional[str] = None
     ollama_model: str = "llama3.1"
     
-    # Anti-detection
-    flaresolverr_url: str = "http://localhost:8191"
+    # Anti-detection (optional for initial deployment)
+    flaresolverr_url: Optional[str] = None
     captcha_api_key: Optional[str] = None
     
     # Monitoring

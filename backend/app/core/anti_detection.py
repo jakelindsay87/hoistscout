@@ -139,11 +139,17 @@ class CaptchaSolver:
 class FlareSolverrClient:
     """Client for FlareSolverr to bypass Cloudflare."""
     
-    def __init__(self, api_url: str = "http://localhost:8191"):
-        self.api_url = api_url
+    def __init__(self, api_url: Optional[str] = None):
+        from ..config import get_settings
+        settings = get_settings()
+        self.api_url = api_url or settings.flaresolverr_url
         
     async def solve_challenge(self, url: str) -> Optional[Dict]:
         """Solve Cloudflare challenge."""
+        if not self.api_url:
+            logger.warning("FlareSolverr not configured - skipping Cloudflare bypass")
+            return None
+            
         import httpx
         
         payload = {

@@ -38,19 +38,26 @@ class BulletproofTenderScraper:
         self.pdf_processor = PDFProcessor()
         self.credential_manager = SecureCredentialManager()
         
-    def _init_scraper(self) -> SmartScraperGraph:
+    def _init_scraper(self) -> Optional[SmartScraperGraph]:
         """Initialize ScrapeGraphAI with Ollama configuration."""
+        from ..config import get_settings
+        settings = get_settings()
+        
+        if not settings.ollama_base_url:
+            logger.warning("Ollama not configured - AI scraping disabled")
+            return None
+            
         return SmartScraperGraph(
             prompt="Extract tender/grant opportunities with title, description, deadline, value, reference number, and document links",
             llm_config={
-                "model": "ollama/llama3.1",
+                "model": f"ollama/{settings.ollama_model}",
                 "temperature": 0.1,
-                "base_url": "http://localhost:11434",
+                "base_url": settings.ollama_base_url,
                 "max_tokens": 4096
             },
             embedder_config={
                 "model": "ollama/nomic-embed-text",
-                "base_url": "http://localhost:11434"
+                "base_url": settings.ollama_base_url
             },
             verbose=True,
             headless=True
@@ -74,6 +81,21 @@ class BulletproofTenderScraper:
             ScrapingResult with extracted opportunities and metadata
         """
         start_time = datetime.utcnow()
+        
+        # Check if AI scraping is available
+        if not self.scraper:
+            logger.warning(f"AI scraping not available for {website_config.url}")
+            return ScrapingResult(
+                website_id=website_config.id,
+                website_url=website_config.url,
+                opportunities=[],
+                metadata={
+                    "error": "AI scraping not configured (Ollama not available)",
+                    "duration_seconds": 0
+                },
+                success=False,
+                error_message="AI scraping service not configured"
+            )
         
         try:
             # Apply anti-detection measures
