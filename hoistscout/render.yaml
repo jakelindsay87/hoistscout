@@ -47,7 +47,7 @@ services:
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscout
     dockerfilePath: ./backend/Dockerfile
-    dockerCommand: python -m app.worker
+    dockerCommand: celery -A app.worker worker --loglevel=info
     envVars:
       - key: DATABASE_URL
         fromDatabase:
