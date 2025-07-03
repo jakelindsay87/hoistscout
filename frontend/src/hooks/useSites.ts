@@ -1,6 +1,7 @@
 import useSWR, { mutate } from 'swr'
 import useSWRMutation from 'swr/mutation'
 import { api } from '@/lib/apiFetch'
+import { useSwrConfig } from './useSwrConfig'
 
 export interface Website {
   id: number
@@ -25,6 +26,7 @@ interface UseSitesOptions {
  * Hook to fetch all sites with optional pagination
  */
 export function useSites(options?: UseSitesOptions) {
+  const swrConfig = useSwrConfig()
   const params = new URLSearchParams()
   if (options?.page) params.append('page', options.page.toString())
   if (options?.limit) params.append('limit', options.limit.toString())
@@ -32,16 +34,18 @@ export function useSites(options?: UseSitesOptions) {
   const queryString = params.toString()
   const url = `/api/websites${queryString ? `?${queryString}` : ''}`
 
-  return useSWR<Website[]>(url, (url: string) => api.get(url))
+  return useSWR<Website[]>(url, (url: string) => api.get(url), swrConfig)
 }
 
 /**
  * Hook to fetch a single site by ID
  */
 export function useSite(id: number | string) {
+  const swrConfig = useSwrConfig()
   return useSWR<Website>(
     id ? `/api/websites/${id}` : null,
-    (url: string) => api.get(url)
+    (url: string) => api.get(url),
+    swrConfig
   )
 }
 

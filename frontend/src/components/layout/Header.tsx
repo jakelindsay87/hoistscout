@@ -5,13 +5,16 @@ import {
   MagnifyingGlassIcon, 
   BellIcon, 
   UserCircleIcon,
-  Bars3Icon
+  Bars3Icon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline'
 import { useStats } from '@/hooks/useStats'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('')
   const { data: stats } = useStats()
+  const { user, logout } = useAuth()
 
   return (
     <header className="bg-white border-b border-slate-200 px-6 py-4">
@@ -58,10 +61,18 @@ export function Header() {
           </button>
 
           {/* User Menu */}
-          <div className="flex items-center">
-            <button className="flex items-center space-x-2 text-sm text-slate-700 hover:text-slate-900 p-2 rounded-lg hover:bg-slate-50 transition-colors duration-200">
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 text-sm text-slate-700 p-2">
               <UserCircleIcon className="h-6 w-6 text-slate-400" />
-              <span className="hidden md:block">Admin</span>
+              <span className="hidden md:block">{user?.username || 'User'}</span>
+            </div>
+            <button 
+              onClick={logout}
+              className="flex items-center space-x-1 text-sm text-slate-600 hover:text-slate-900 p-2 rounded-lg hover:bg-slate-50 transition-colors duration-200"
+              title="Logout"
+            >
+              <ArrowRightOnRectangleIcon className="h-5 w-5" />
+              <span className="hidden md:block">Logout</span>
             </button>
           </div>
         </div>

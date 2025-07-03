@@ -4,6 +4,7 @@ import { ErrorBoundaryClass } from '@/components/ErrorBoundary'
 import { ToastContainer } from '@/components/ui/toast'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
+import { AuthProvider } from '@/contexts/AuthContext'
 import './globals.css'
 // Initialize API configuration and logging
 import '@/lib/init-api-config'
@@ -23,25 +24,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full bg-slate-50 antialiased`}>
-        <div className="flex h-full">
-          {/* Sidebar */}
-          <Sidebar />
-          
-          {/* Main Content */}
-          <div className="flex-1 flex flex-col ml-64">
-            {/* Header */}
-            <Header />
-            
-            {/* Main Content Area */}
-            <main className="flex-1 overflow-auto">
-              <div className="px-6 py-6">
-                <ErrorBoundaryClass>
-                  {children}
-                </ErrorBoundaryClass>
-              </div>
-            </main>
-          </div>
-        </div>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <ToastContainer />
       </body>
     </html>

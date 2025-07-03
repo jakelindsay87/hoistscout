@@ -2,13 +2,16 @@ import useSWR, { mutate } from 'swr';
 import { apiFetch } from '@/lib/apiFetch';
 import { WebsiteCredential, WebsiteCredentialCreate, CredentialValidationResult } from '@/types/credentials';
 import { useToast } from './use-toast';
+import { useSwrConfig } from './useSwrConfig';
 
 const CREDENTIALS_KEY = '/api/credentials';
 
 export function useCredentials() {
+  const swrConfig = useSwrConfig();
   const { data, error, isLoading } = useSWR<WebsiteCredential[]>(
     CREDENTIALS_KEY,
-    () => apiFetch('/api/credentials')
+    () => apiFetch('/api/credentials'),
+    swrConfig
   );
 
   return {
@@ -20,9 +23,11 @@ export function useCredentials() {
 }
 
 export function useWebsiteCredential(websiteId: number | undefined) {
+  const swrConfig = useSwrConfig();
   const { data, error, isLoading } = useSWR<WebsiteCredential>(
     websiteId ? `/api/credentials/${websiteId}` : null,
-    () => websiteId ? apiFetch(`/api/credentials/${websiteId}`) : null
+    () => websiteId ? apiFetch(`/api/credentials/${websiteId}`) : null,
+    swrConfig
   );
 
   return {

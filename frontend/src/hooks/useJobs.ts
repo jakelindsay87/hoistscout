@@ -1,6 +1,7 @@
 import useSWR, { mutate } from 'swr'
 import useSWRMutation from 'swr/mutation'
 import { apiFetch } from '@/lib/apiFetch'
+import { useSwrConfig } from './useSwrConfig'
 
 export interface ScrapeJob {
   id: number
@@ -27,10 +28,12 @@ interface UseJobsOptions {
  * Hook to fetch all jobs with optional filtering
  */
 export function useJobs(options?: UseJobsOptions) {
+  const swrConfig = useSwrConfig();
   return useSWR<ScrapeJob[]>(
     '/api/scrape-jobs',
     apiFetch,
     {
+      ...swrConfig,
       refreshInterval: 3000 // Poll every 3 seconds for status updates
     }
   )
@@ -40,10 +43,12 @@ export function useJobs(options?: UseJobsOptions) {
  * Hook to fetch a single job by ID
  */
 export function useJob(id: number | null) {
+  const swrConfig = useSwrConfig();
   return useSWR<ScrapeJob>(
     id ? `/api/scrape-jobs/${id}` : null,
     apiFetch,
     {
+      ...swrConfig,
       refreshInterval: (data) => {
         // Poll while job is running
         if (data?.status === 'pending' || data?.status === 'running') {

@@ -57,6 +57,12 @@ export async function apiFetch<T = any>(
     defaultHeaders['Content-Type'] = 'application/json'
   }
 
+  // Add Authorization header if token exists
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`
+  }
+
   const finalHeaders = {
     ...defaultHeaders,
     ...headers
@@ -90,6 +96,41 @@ export async function apiFetch<T = any>(
 
         // Don't retry on 4xx errors (client errors)
         if (response.status >= 400 && response.status < 500) {
+          // Special handling for 401 - might need token refresh
+          if (response.status === 401) {
+            // Token might be expired, try to refresh
+            if (typeof window !== 'undefined' && !path.includes('/auth/')) {
+              const refreshToken = localStorage.getItem('refresh_token')
+              if (refreshToken && attempts === 0) {
+                // Try to refresh token once
+                try {
+                  const refreshResponse = await fetch(`${baseUrl}/api/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                  })
+                  
+                  if (refreshResponse.ok) {
+                    const data = await refreshResponse.json()
+                    localStorage.setItem('access_token', data.access_token)
+                    // Update the auth header and retry
+                    finalHeaders['Authorization'] = `Bearer ${data.access_token}`
+                    attempts++
+                    continue
+                  }
+                } catch (refreshError) {
+                  console.error('Token refresh failed:', refreshError)
+                }
+                
+                // Refresh failed, clear tokens and redirect to login
+                localStorage.removeItem('access_token')
+                localStorage.removeItem('refresh_token')
+                if (window.location.pathname !== '/login') {
+                  window.location.href = '/login'
+                }
+              }
+            }
+          }
           throw error
         }
 

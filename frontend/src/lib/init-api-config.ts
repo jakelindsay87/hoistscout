@@ -1,4 +1,5 @@
 import { getApiUrl } from '@/config/api'
+import './debug-auth'  // Enable auth debugging in development
 
 /**
  * Initialize and log API configuration

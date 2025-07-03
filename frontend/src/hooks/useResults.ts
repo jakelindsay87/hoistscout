@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import { api } from '@/lib/apiFetch'
 import { ScrapeJob } from './useJobs'
+import { useSwrConfig } from './useSwrConfig'
 
 export interface ScrapeResult {
   jobId: string
@@ -16,11 +17,13 @@ export interface ScrapeResult {
  * @param jobStatus - Optional job status to prevent fetching if not completed
  */
 export function useResult(jobId: string | null, jobStatus?: ScrapeJob['status']) {
+  const swrConfig = useSwrConfig();
   // Only fetch if we have a job ID and it's completed (or status not provided)
   const shouldFetch = jobId && (!jobStatus || jobStatus === 'completed')
   
   return useSWR<ScrapeResult>(
     shouldFetch ? `/api/results/${jobId}` : null,
-    (url: string) => api.get(url)
+    (url: string) => api.get(url),
+    swrConfig
   )
 }

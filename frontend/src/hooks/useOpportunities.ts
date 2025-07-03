@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import useSWRMutation from 'swr/mutation'
 import { apiFetch } from '@/lib/apiFetch'
+import { useSwrConfig } from './useSwrConfig'
 
 export interface Opportunity {
   id: number
@@ -25,11 +26,13 @@ export interface OpportunityCreate {
 }
 
 export function useOpportunities() {
-  return useSWR<Opportunity[]>('/api/opportunities', apiFetch)
+  const swrConfig = useSwrConfig();
+  return useSWR<Opportunity[]>('/api/opportunities', apiFetch, swrConfig)
 }
 
 export function useOpportunity(id: number) {
-  return useSWR<Opportunity>(`/api/opportunities/${id}`, apiFetch)
+  const swrConfig = useSwrConfig();
+  return useSWR<Opportunity>(`/api/opportunities/${id}`, apiFetch, swrConfig)
 }
 
 export function useCreateOpportunity() {

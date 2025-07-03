@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     
+    # Demo mode
+    enable_demo_mode: bool = True  # Allow unauthenticated access in demo mode
+    demo_user_enabled: bool = True  # Create demo user on startup
+    
     # MinIO (optional for initial deployment)
     minio_endpoint: Optional[str] = None
     minio_access_key: Optional[str] = None

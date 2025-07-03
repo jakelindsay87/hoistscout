@@ -7,6 +7,7 @@ import structlog
 from .config import get_settings
 from .database import init_db, close_db
 from .api import auth, websites, opportunities, jobs, health
+from .utils.demo_user import ensure_demo_user
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -17,6 +18,12 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting HoistScout API...")
     await init_db()
+    
+    # Create demo user
+    from .database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        await ensure_demo_user(db)
+    
     yield
     # Shutdown
     logger.info("Shutting down HoistScout API...")

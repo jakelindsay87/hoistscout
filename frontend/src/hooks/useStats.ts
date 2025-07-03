@@ -1,5 +1,6 @@
 import useSWR from 'swr'
 import { apiFetch } from '@/lib/apiFetch'
+import { useSwrConfig } from './useSwrConfig'
 
 export interface Stats {
   total_sites: number
@@ -10,5 +11,6 @@ export interface Stats {
 }
 
 export function useStats() {
-  return useSWR<Stats>('/api/stats', apiFetch)
+  const swrConfig = useSwrConfig();
+  return useSWR<Stats>('/api/stats', apiFetch, swrConfig)
 }
