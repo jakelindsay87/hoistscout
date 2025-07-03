@@ -5,6 +5,8 @@ import { ToastContainer } from '@/components/ui/toast'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import './globals.css'
+// Initialize API configuration and logging
+import '@/lib/init-api-config'
 
 const inter = Inter({ subsets: ['latin'] })
 

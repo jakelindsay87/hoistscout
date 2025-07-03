@@ -1,4 +1,5 @@
 import { getApiUrl } from '@/config/api'
+import { validateApiUrl } from './api-url-validator'
 
 /**
  * Custom error class for API errors
@@ -40,7 +41,7 @@ export async function apiFetch<T = any>(
     ...fetchOptions
   } = options
 
-  const baseUrl = getApiUrl()
+  const baseUrl = validateApiUrl(getApiUrl())
   const url = `${baseUrl}${path}`
   
   // Log API calls in development
