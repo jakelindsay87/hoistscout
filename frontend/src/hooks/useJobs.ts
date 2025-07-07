@@ -30,7 +30,7 @@ interface UseJobsOptions {
 export function useJobs(options?: UseJobsOptions) {
   const swrConfig = useSwrConfig();
   return useSWR<ScrapeJob[]>(
-    '/api/scrape-jobs',
+    '/api/scraping/jobs',
     apiFetch,
     {
       ...swrConfig,
@@ -45,7 +45,7 @@ export function useJobs(options?: UseJobsOptions) {
 export function useJob(id: number | null) {
   const swrConfig = useSwrConfig();
   return useSWR<ScrapeJob>(
-    id ? `/api/scrape-jobs/${id}` : null,
+    id ? `/api/scraping/jobs/${id}` : null,
     apiFetch,
     {
       ...swrConfig,
@@ -64,16 +64,23 @@ export function useJob(id: number | null) {
  * Hook to create a new scraping job
  */
 export function useCreateJob() {
-  return useSWRMutation<ScrapeJob, Error, string, CreateJobData>(
-    '/api/scrape-jobs',
+  return useSWRMutation<ScrapeJob, Error, string, { websiteId: number }>(
+    '/api/scraping/jobs',
     async (url, { arg }) => {
+      // Convert frontend format to backend format
+      const jobData = {
+        website_id: arg.websiteId,
+        job_type: 'full', // Default to full scrape
+        priority: 5 // Default priority
+      }
+      
       const result = await apiFetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(arg)
+        body: JSON.stringify(jobData)
       })
       // Invalidate jobs list cache
-      await mutate((key) => typeof key === 'string' && key.startsWith('/api/scrape-jobs'))
+      await mutate((key) => typeof key === 'string' && key.startsWith('/api/scraping/jobs'))
       return result
     }
   )

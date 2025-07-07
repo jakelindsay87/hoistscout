@@ -40,7 +40,13 @@ async def create_scraping_job(
     await db.commit()
     await db.refresh(job)
     
-    # TODO: Queue job with Celery
+    # Queue job with Celery
+    from ..worker import scrape_website_task
+    scrape_website_task.apply_async(
+        args=[job.website_id],
+        task_id=str(job.id),
+        priority=job.priority
+    )
     
     return job
 
