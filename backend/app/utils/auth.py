@@ -28,6 +28,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
     
+    # Convert 'sub' to string for JWT standard compliance
+    if 'sub' in to_encode and isinstance(to_encode['sub'], int):
+        to_encode['sub'] = str(to_encode['sub'])
+    
     to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
@@ -36,6 +40,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    
+    # Convert 'sub' to string for JWT standard compliance
+    if 'sub' in to_encode and isinstance(to_encode['sub'], int):
+        to_encode['sub'] = str(to_encode['sub'])
+    
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
@@ -48,13 +57,20 @@ def verify_token(token: str, token_type: str = "access") -> Optional[TokenData]:
         if payload.get("type") != token_type:
             return None
             
-        user_id: int = payload.get("sub")
+        # Convert 'sub' back to int from string
+        user_id_str: str = payload.get("sub")
+        if user_id_str is None:
+            return None
+            
+        try:
+            user_id = int(user_id_str)
+        except (ValueError, TypeError):
+            logger.error(f"Invalid user_id in JWT: {user_id_str}")
+            return None
+            
         email: str = payload.get("email")
         role: str = payload.get("role")
         
-        if user_id is None:
-            return None
-            
         return TokenData(user_id=user_id, email=email, role=role)
         
     except JWTError as e:
