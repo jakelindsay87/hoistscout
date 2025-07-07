@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 import structlog
 
@@ -52,6 +53,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Middleware to handle trailing slash redirects with auth headers preserved
+@app.middleware("http")
+async def preserve_auth_on_redirect(request: Request, call_next):
+    # Skip middleware for paths that already have trailing slash or are not API paths
+    if request.url.path.endswith("/") or not request.url.path.startswith("/api/"):
+        response = await call_next(request)
+        return response
+    
+    # For API paths without trailing slash, check if adding a slash would match a route
+    path_with_slash = request.url.path + "/"
+    
+    # List of known API paths that should have trailing slashes
+    api_paths_with_slash = [
+        "/api/websites/",
+        "/api/opportunities/", 
+        "/api/scraping/jobs/"
+    ]
+    
+    if path_with_slash in api_paths_with_slash:
+        # Instead of redirecting, just add the slash and continue
+        request.scope["path"] = path_with_slash
+    
+    response = await call_next(request)
+    return response
+
 
 # Prometheus metrics
 if settings.environment == "production":

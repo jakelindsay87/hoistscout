@@ -24,34 +24,6 @@ export interface FetchOptions extends RequestInit {
 }
 
 /**
- * Ensures API paths have trailing slashes to avoid redirects
- */
-function ensureTrailingSlash(path: string): string {
-  // Skip if it's already a full URL
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path
-  }
-  
-  // Skip if it already has a trailing slash or has query params
-  if (path.endsWith('/') || path.includes('?')) {
-    return path
-  }
-  
-  // Add trailing slash for collection endpoints
-  const collectionEndpoints = [
-    '/api/websites',
-    '/api/opportunities',
-    '/api/scraping/jobs'
-  ]
-  
-  if (collectionEndpoints.some(endpoint => path === endpoint)) {
-    return path + '/'
-  }
-  
-  return path
-}
-
-/**
  * Enhanced fetch wrapper with error handling and retries
  * @param path - API endpoint path (will be appended to base URL)
  * @param options - Fetch options with additional retry configuration
@@ -70,8 +42,7 @@ export async function apiFetch<T = any>(
   } = options
 
   const baseUrl = validateApiUrl(getApiUrl())
-  const fixedPath = ensureTrailingSlash(path)
-  const url = `${baseUrl}${fixedPath}`
+  const url = `${baseUrl}${path}`
   
   // Log API calls in development
   if (process.env.NODE_ENV === 'development') {
