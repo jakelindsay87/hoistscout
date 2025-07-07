@@ -19,10 +19,14 @@ async def lifespan(app: FastAPI):
     logger.info("Starting HoistScout API...")
     await init_db()
     
-    # Create demo user
-    from .database import AsyncSessionLocal
-    async with AsyncSessionLocal() as db:
-        await ensure_demo_user(db)
+    # Create demo user if enabled
+    if settings.demo_user_enabled:
+        try:
+            from .database import AsyncSessionLocal
+            async with AsyncSessionLocal() as db:
+                await ensure_demo_user(db)
+        except Exception as e:
+            logger.warning(f"Failed to create demo user: {e}. Continuing without demo user.")
     
     yield
     # Shutdown

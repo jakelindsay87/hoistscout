@@ -14,7 +14,7 @@ async def ensure_demo_user(db: AsyncSession) -> None:
     try:
         # Check if demo user already exists
         result = await db.execute(
-            select(User).where(User.username == "demo")
+            select(User).where(User.email == "demo@hoistscout.com")
         )
         demo_user = result.scalar_one_or_none()
         
@@ -22,10 +22,9 @@ async def ensure_demo_user(db: AsyncSession) -> None:
             # Create demo user
             demo_user = User(
                 email="demo@hoistscout.com",
-                username="demo",
-                hashed_password=get_password_hash("demo123"),
-                is_active=True,
-                is_superuser=False
+                password_hash=get_password_hash("demo123"),
+                full_name="Demo User",
+                is_active=True
             )
             db.add(demo_user)
             await db.commit()

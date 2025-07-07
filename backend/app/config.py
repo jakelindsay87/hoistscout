@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     redis_url: str
     
     # Security
-    secret_key: str
+    secret_key: str = "hoistscout-dev-secret-key-change-in-production-make-it-long-and-random"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
