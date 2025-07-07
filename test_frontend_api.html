@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend API</title>
+</head>
+<body>
+    <h1>Frontend API Test</h1>
+    <div id="status">Testing...</div>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'https://hoistscout-api.onrender.com';
+        
+        async function testAPI() {
+            const statusEl = document.getElementById('status');
+            const resultsEl = document.getElementById('results');
+            
+            try {
+                // 1. Test login
+                statusEl.textContent = 'Testing login...';
+                const loginResp = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'username=demo@hoistscout.com&password=demo123'
+                });
+                
+                if (!loginResp.ok) {
+                    throw new Error(`Login failed: ${loginResp.status}`);
+                }
+                
+                const loginData = await loginResp.json();
+                const token = loginData.access_token;
+                resultsEl.innerHTML += '<p>✅ Login successful</p>';
+                
+                // 2. Test websites endpoint with trailing slash
+                statusEl.textContent = 'Testing /api/websites/ endpoint...';
+                const websitesResp = await fetch(`${API_BASE}/api/websites/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!websitesResp.ok) {
+                    throw new Error(`Websites fetch failed: ${websitesResp.status}`);
+                }
+                
+                const websites = await websitesResp.json();
+                resultsEl.innerHTML += `<p>✅ Websites endpoint works! Found ${websites.length} websites</p>`;
+                
+                // 3. Test auth/me endpoint
+                statusEl.textContent = 'Testing /api/auth/me endpoint...';
+                const meResp = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!meResp.ok) {
+                    throw new Error(`Auth/me failed: ${meResp.status}`);
+                }
+                
+                const userData = await meResp.json();
+                resultsEl.innerHTML += `<p>✅ Auth/me works! User: ${userData.email}</p>`;
+                
+                statusEl.textContent = '✅ All tests passed!';
+                statusEl.style.color = 'green';
+                
+            } catch (error) {
+                statusEl.textContent = `❌ Error: ${error.message}`;
+                statusEl.style.color = 'red';
+                console.error(error);
+            }
+        }
+        
+        // Run test on page load
+        testAPI();
+    </script>
+</body>
+</html>

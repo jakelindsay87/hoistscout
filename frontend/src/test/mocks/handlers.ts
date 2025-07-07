@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw'
 
 export const handlers = [
   // Websites endpoints
-  http.get('http://localhost:8000/api/websites', () => {
+  http.get('http://localhost:8000/api/websites/', () => {
     return HttpResponse.json([
       {
         id: 1,
@@ -20,7 +20,7 @@ export const handlers = [
     ])
   }),
 
-  http.post('http://localhost:8000/api/websites', async ({ request }) => {
+  http.post('http://localhost:8000/api/websites/', async ({ request }) => {
     const body = await request.json()
     return HttpResponse.json({
       id: 3,

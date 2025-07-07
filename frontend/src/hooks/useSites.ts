@@ -32,7 +32,7 @@ export function useSites(options?: UseSitesOptions) {
   if (options?.limit) params.append('limit', options.limit.toString())
   
   const queryString = params.toString()
-  const url = `/api/websites${queryString ? `?${queryString}` : ''}`
+  const url = `/api/websites/${queryString ? `?${queryString}` : ''}`
 
   return useSWR<Website[]>(url, (url: string) => api.get(url), swrConfig)
 }
@@ -54,7 +54,7 @@ export function useSite(id: number | string) {
  */
 export function useCreateSite() {
   return useSWRMutation<Website, Error, string, CreateSiteData>(
-    '/api/websites',
+    '/api/websites/',
     async (url, { arg }) => {
       const result = await api.post<Website>(url, arg)
       // Invalidate sites list cache
