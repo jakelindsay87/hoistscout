@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Globe, Briefcase, FileText, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
-import { getApiUrl } from '@/config/api'
+import { api } from '@/lib/apiFetch'
 
 interface DashboardStats {
   totalSites: number
@@ -28,42 +28,65 @@ export default function DashboardPage() {
 
   const fetchDashboardStats = async () => {
     try {
-      // Fetch stats from multiple endpoints
-      const [sitesRes, opportunitiesRes, jobsRes] = await Promise.all([
-        fetch(`${getApiUrl()}/api/websites`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }),
-        fetch(`${getApiUrl()}/api/opportunities`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }),
-        fetch(`${getApiUrl()}/api/scrape-jobs`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
+      // Fetch stats from multiple endpoints with proper error handling
+      const [sitesData, opportunitiesData, jobsData] = await Promise.allSettled([
+        api.get('/api/websites'),
+        api.get('/api/opportunities'),
+        api.get('/api/scraping/jobs')
       ])
 
-      const sites = await sitesRes.json()
-      const opportunities = await opportunitiesRes.json()
-      const jobs = await jobsRes.json()
+      // Handle sites data
+      let sites = []
+      if (sitesData.status === 'fulfilled' && Array.isArray(sitesData.value)) {
+        sites = sitesData.value
+      }
+
+      // Handle opportunities data
+      let opportunities = []
+      if (opportunitiesData.status === 'fulfilled') {
+        // Check if response is an array or has a data property
+        if (Array.isArray(opportunitiesData.value)) {
+          opportunities = opportunitiesData.value
+        } else if (opportunitiesData.value?.data && Array.isArray(opportunitiesData.value.data)) {
+          opportunities = opportunitiesData.value.data
+        } else if (opportunitiesData.value?.opportunities && Array.isArray(opportunitiesData.value.opportunities)) {
+          opportunities = opportunitiesData.value.opportunities
+        }
+      }
+
+      // Handle jobs data
+      let jobs = []
+      if (jobsData.status === 'fulfilled') {
+        if (Array.isArray(jobsData.value)) {
+          jobs = jobsData.value
+        } else if (jobsData.value?.data && Array.isArray(jobsData.value.data)) {
+          jobs = jobsData.value.data
+        } else if (jobsData.value?.jobs && Array.isArray(jobsData.value.jobs)) {
+          jobs = jobsData.value.jobs
+        }
+      }
 
       setStats({
-        totalSites: sites.length || 0,
-        totalOpportunities: opportunities.length || 0,
-        activeJobs: jobs.filter((job: any) => job.status === 'running').length || 0,
+        totalSites: sites.length,
+        totalOpportunities: opportunities.length,
+        activeJobs: jobs.filter((job: any) => job.status === 'running' || job.status === 'pending').length,
         recentOpportunities: opportunities.filter((opp: any) => {
+          if (!opp.created_at) return false
           const createdAt = new Date(opp.created_at)
           const weekAgo = new Date()
           weekAgo.setDate(weekAgo.getDate() - 7)
           return createdAt > weekAgo
-        }).length || 0
+        }).length
       })
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error)
+      // Set default values on error
+      setStats({
+        totalSites: 0,
+        totalOpportunities: 0,
+        activeJobs: 0,
+        recentOpportunities: 0
+      })
     } finally {
       setLoading(false)
     }

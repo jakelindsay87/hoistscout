@@ -78,8 +78,11 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncSession = Depends(get_db)
 ):
-    # Find user
-    stmt = select(User).where(User.email == form_data.username)
+    # Find user by email or handle special case for "demo" username
+    if form_data.username == "demo":
+        stmt = select(User).where(User.email == "demo@hoistscout.com")
+    else:
+        stmt = select(User).where(User.email == form_data.username)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
     
