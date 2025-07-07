@@ -25,7 +25,7 @@ export default function LoginPage() {
 
     try {
       await login(username, password)
-      router.push('/dashboard')
+      router.push('/sites')
     } catch (err: any) {
       setError(err.data?.detail || 'Invalid username or password')
     } finally {
@@ -40,7 +40,7 @@ export default function LoginPage() {
     try {
       // Use demo credentials
       await login('demo', 'demo123')
-      router.push('/dashboard')
+      router.push('/sites')
     } catch (err: any) {
       setError('Demo login failed. Please try again.')
     } finally {
