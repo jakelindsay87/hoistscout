@@ -9,9 +9,10 @@ import json
 from datetime import datetime
 
 # Configuration
-API_BASE = "https://hoistscout-api.onrender.com"
-DEMO_USERNAME = "demo"
-DEMO_PASSWORD = "demo123"
+import os
+API_BASE = os.environ.get("API_BASE", "https://hoistscout-api.onrender.com")
+DEMO_USERNAME = os.environ.get("DEMO_USERNAME", "demo")
+DEMO_PASSWORD = os.environ.get("DEMO_PASSWORD", "demo123")
 
 class HoistScoutTester:
     def __init__(self):
@@ -33,6 +34,7 @@ class HoistScoutTester:
             response = self.session.post(
                 f"{API_BASE}/api/auth/login",
                 data=login_data,  # Form data, not JSON
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
                 timeout=10
             )
             
@@ -42,7 +44,8 @@ class HoistScoutTester:
                 self.session.headers.update({
                     "Authorization": f"Bearer {self.access_token}"
                 })
-                print("✅ Login successful!")
+                print(f"✅ Login successful!")
+                print(f"   Token: {self.access_token[:20]}..." if self.access_token else "   Warning: No token received")
                 return True
             else:
                 print(f"❌ Login failed: {response.status_code} - {response.text}")
@@ -54,6 +57,7 @@ class HoistScoutTester:
     def get_websites(self):
         """Get list of websites."""
         print("\n📋 Fetching websites...")
+        print(f"   Headers: {dict(self.session.headers)}")
         try:
             response = self.session.get(f"{API_BASE}/api/websites", timeout=10)
             if response.status_code == 200:
