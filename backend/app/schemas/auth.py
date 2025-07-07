@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, computed_field
 from ..models.user import UserRole
 
 
@@ -40,3 +40,9 @@ class UserResponse(BaseModel):
     last_login: Optional[datetime]
     
     model_config = {"from_attributes": True}
+    
+    @computed_field
+    @property
+    def username(self) -> str:
+        """Return email as username for frontend compatibility"""
+        return self.email
