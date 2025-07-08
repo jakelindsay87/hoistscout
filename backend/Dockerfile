@@ -19,8 +19,10 @@ RUN pip install poetry==1.7.1
 # Set working directory
 WORKDIR /app
 
-# Copy dependency file
-COPY pyproject.toml pyproject.toml
+# Copy dependency files - handle both root and backend contexts
+COPY pyproject.toml* poetry.lock* ./
+# Also try backend directory in case of root context
+COPY backend/pyproject.toml* backend/poetry.lock* ./ 2>/dev/null || true
 
 # Configure poetry
 RUN poetry config virtualenvs.create false
@@ -28,13 +30,15 @@ RUN poetry config virtualenvs.create false
 # Install dependencies
 RUN poetry install --no-interaction --no-ansi --no-root
 
-# Copy application code
-COPY . /app
+# Copy application code - handle both contexts
+COPY . /app/
+COPY backend/* /app/ 2>/dev/null || true
+COPY backend/app /app/app 2>/dev/null || true
 
 # Install the app package
 RUN poetry install --no-interaction --no-ansi
 
-# Install Playwright browsers (optional, can be removed if not needed immediately)
+# Install Playwright browsers (optional)
 RUN poetry run playwright install-deps chromium || true
 RUN poetry run playwright install chromium || true
 
