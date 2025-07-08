@@ -81,37 +81,33 @@ def scrape_website_task(self, website_id: int):
                         job.started_at = datetime.utcnow()
                         await db.commit()
                 
-                # Import and run scraper (lazy import to avoid startup issues)
+                # Use integrated scraping pipeline that maintains PRD architecture
                 try:
-                    from .core.scraper import BulletproofTenderScraper
-                    scraper = BulletproofTenderScraper()
-                    result = await scraper.scrape_website(website)
-                except (ImportError, ModuleNotFoundError) as e:
-                    # Try Ollama scraper as fallback
-                    try:
-                        from .config import get_settings
-                        settings = get_settings()
-                        
-                        if settings.ollama_base_url:
-                            from .core.scraper_with_ollama import OllamaScraper
-                            scraper = OllamaScraper(
-                                ollama_base_url=settings.ollama_base_url,
-                                model=settings.ollama_model
-                            )
-                            result = await scraper.scrape_website(website)
-                        else:
-                            # Try demo scraper as final fallback
-                            from .core.demo_scraper import scrape_website_demo
-                            result = await scrape_website_demo(website)
-                    except Exception as fallback_error:
-                        # If all scrapers fail, return empty result
-                        from datetime import datetime
-                        result = type('obj', (object,), {
-                            'opportunities': [],
-                            'success': False,
-                            'error_message': f"Scraper not available: {str(e)}, Fallback error: {str(fallback_error)}",
-                            'stats': {}
-                        })
+                    from .core.scraper_integration import IntegratedScrapingPipeline, get_service_status
+                    
+                    # Log service status
+                    service_status = get_service_status()
+                    logger.info(f"Scraping service status: {service_status}")
+                    
+                    # Create integrated pipeline
+                    pipeline = IntegratedScrapingPipeline()
+                    
+                    # Execute scraping with full pipeline
+                    result = await pipeline.scrape_with_full_pipeline(website)
+                    
+                except Exception as e:
+                    logger.error(f"Integrated scraping pipeline failed: {e}")
+                    # Return error result
+                    from datetime import datetime
+                    result = type('obj', (object,), {
+                        'opportunities': [],
+                        'success': False,
+                        'error_message': f"Scraping pipeline error: {str(e)}",
+                        'stats': {
+                            'error': str(e),
+                            'timestamp': datetime.utcnow().isoformat()
+                        }
+                    })
                 
                 # Save opportunities
                 for opp_data in result.opportunities:

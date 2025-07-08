@@ -20,6 +20,10 @@ services:
         value: "1"
       - key: PYTHONPATH
         value: "/app"
+      - key: OLLAMA_BASE_URL
+        value: https://hoistscout-ollama.onrender.com
+      - key: OLLAMA_MODEL
+        value: llama3.2
     healthCheckPath: /api/health
     autoDeploy: true
     plan: starter
@@ -61,6 +65,25 @@ services:
         value: "1"
       - key: PYTHONPATH
         value: "/app"
+      - key: OLLAMA_BASE_URL
+        value: https://hoistscout-ollama.onrender.com
+      - key: OLLAMA_MODEL
+        value: llama3.2
+    autoDeploy: true
+    plan: starter
+
+  # Ollama Proxy Service
+  - type: web
+    name: hoistscout-ollama
+    runtime: docker
+    repo: https://github.com/jakelindsay87/hoistscout
+    dockerfilePath: ollama-proxy/Dockerfile
+    envVars:
+      - key: MOCK_MODE
+        value: "true"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    healthCheckPath: /health
     autoDeploy: true
     plan: starter
 
