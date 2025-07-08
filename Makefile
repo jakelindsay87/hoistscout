@@ -1,11 +1,17 @@
-# HoistScraper Makefile
+# HoistScout Makefile
 
-.PHONY: help test-all test-local test-docker test-frontend test-backend test-worker verify-deploy health-check clean
+.PHONY: help fmt test lint test-all test-local test-docker test-frontend test-backend test-worker verify-deploy health-check clean
 
 # Default target
 help:
-	@echo "HoistScraper Testing Commands:"
-	@echo "=============================="
+	@echo "HoistScout Commands:"
+	@echo "===================="
+	@echo "Core Commands (required by CLAUDE.md):"
+	@echo "make fmt             - Format code (black + ruff)"
+	@echo "make test            - Run all tests"
+	@echo "make lint            - Run linting checks"
+	@echo ""
+	@echo "Testing Commands:"
 	@echo "make test-all        - Run all tests (local + docker)"
 	@echo "make test-local      - Run local tests without Docker"
 	@echo "make test-docker     - Run tests with Docker Compose"
@@ -21,6 +27,25 @@ help:
 	@echo "make docker-up      - Start test environment"
 	@echo "make docker-down    - Stop test environment"
 	@echo "make docker-logs    - View Docker logs"
+
+# Core commands required by CLAUDE.md
+fmt:
+	@echo "🎨 Formatting code..."
+	@cd backend && poetry run black . && poetry run ruff format .
+	@cd frontend && npm run lint -- --fix
+	@echo "✅ Formatting complete!"
+
+test:
+	@echo "🧪 Running all tests..."
+	@cd backend && poetry run pytest -v
+	@cd frontend && npm test -- --run
+	@echo "✅ All tests passed!"
+
+lint:
+	@echo "🔍 Running linting checks..."
+	@cd backend && poetry run ruff check . && poetry run mypy .
+	@cd frontend && npm run lint && npm run type-check
+	@echo "✅ Linting complete!"
 
 # Run all tests
 test-all: test-local test-docker

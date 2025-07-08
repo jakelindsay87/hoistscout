@@ -6,7 +6,7 @@ export function getApiUrl(): string {
     if (window.location.hostname.includes('hoistscout')) {
       return 'https://hoistscout-api.onrender.com'
     }
-    return 'https://hoistscraper.onrender.com'
+    return 'https://hoistscout-api.onrender.com'
   }
   
   // Check environment variable but validate it
@@ -45,7 +45,7 @@ export function getApiUrl(): string {
     if (window.location.hostname.includes('hoistscout')) {
       return 'https://hoistscout-api.onrender.com'
     }
-    return 'https://hoistscraper.onrender.com'
+    return 'https://hoistscout-api.onrender.com'
   }
   
   // Final fallback

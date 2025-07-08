@@ -19,24 +19,24 @@ RUN pip install poetry==1.7.1
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files from backend directory
-COPY backend/pyproject.toml /app/
+# Copy dependency file
+COPY pyproject.toml pyproject.toml
 
-# Configure poetry to not create virtual env (we're in container)
+# Configure poetry
 RUN poetry config virtualenvs.create false
 
-# Generate lock file
-RUN poetry lock --no-update
+# Install dependencies
+RUN poetry install --no-interaction --no-ansi --no-root
 
-# Install dependencies including the AI extra for scrapegraphai
-RUN poetry install --no-interaction --no-ansi -E ai
+# Copy application code
+COPY . /app
 
-# Copy application code from backend directory
-COPY backend/ /app
+# Install the app package
+RUN poetry install --no-interaction --no-ansi
 
-# Install Playwright browsers and dependencies for scrapegraphai (as root)
-RUN poetry run playwright install-deps chromium
-RUN poetry run playwright install chromium
+# Install Playwright browsers (optional, can be removed if not needed immediately)
+RUN poetry run playwright install-deps chromium || true
+RUN poetry run playwright install chromium || true
 
 # Set Python path
 ENV PYTHONPATH=/app
@@ -48,5 +48,5 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Default command (can be overridden)
+# Default command
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
