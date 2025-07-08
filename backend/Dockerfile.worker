@@ -27,8 +27,8 @@ WORKDIR /app
 # Copy Poetry files
 COPY pyproject.toml ./
 
-# Install dependencies (will generate lock file)
-RUN poetry lock && poetry install --only main && rm -rf $POETRY_CACHE_DIR
+# Install dependencies including AI extra (will generate lock file)
+RUN poetry lock && poetry install --only main -E ai && rm -rf $POETRY_CACHE_DIR
 
 # Activate virtual environment and install Playwright browsers
 RUN . /app/.venv/bin/activate && pip install playwright && playwright install chromium --with-deps

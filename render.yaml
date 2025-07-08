@@ -27,7 +27,7 @@ services:
       - key: USE_GEMINI
         value: "true"
       - key: GEMINI_API_KEY
-        generateValue: true  # You'll need to update this with your actual API key
+        sync: false  # You'll need to update this with your actual API key
       - key: GEMINI_MODEL
         value: gemini-1.5-flash
     healthCheckPath: /api/health
@@ -59,7 +59,7 @@ services:
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscout
     dockerfilePath: backend/Dockerfile
-    dockerCommand: celery -A app.worker worker --loglevel=info
+    dockerCommand: cd /app && celery -A app.worker worker --loglevel=info
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -78,26 +78,30 @@ services:
       - key: USE_GEMINI
         value: "true"
       - key: GEMINI_API_KEY
-        generateValue: true  # You'll need to update this with your actual API key
+        sync: false  # You'll need to update this with your actual API key
       - key: GEMINI_MODEL
         value: gemini-1.5-flash
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
     autoDeploy: true
     plan: starter
 
-  # Ollama Proxy Service
-  - type: web
-    name: hoistscout-ollama
-    runtime: docker
-    repo: https://github.com/jakelindsay87/hoistscout
-    dockerfilePath: ollama-proxy/Dockerfile
-    envVars:
-      - key: MOCK_MODE
-        value: "true"
-      - key: PYTHONUNBUFFERED
-        value: "1"
-    healthCheckPath: /health
-    autoDeploy: true
-    plan: starter
+  # Ollama Proxy Service (optional - comment out if using Gemini)
+  # - type: web
+  #   name: hoistscout-ollama
+  #   runtime: docker
+  #   repo: https://github.com/jakelindsay87/hoistscout
+  #   dockerfilePath: ollama-proxy/Dockerfile
+  #   envVars:
+  #     - key: MOCK_MODE
+  #       value: "true"
+  #     - key: PYTHONUNBUFFERED
+  #       value: "1"
+  #   healthCheckPath: /health
+  #   autoDeploy: true
+  #   plan: starter
 
 # Database
 databases:

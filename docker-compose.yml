@@ -135,6 +135,23 @@ services:
     environment:
       OLLAMA_HOST: 0.0.0.0
 
+  ollama-proxy:
+    build:
+      context: ./ollama-proxy
+      dockerfile: Dockerfile
+    container_name: hoistscraper-ollama-proxy
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      MOCK_MODE: "false"
+      EXTERNAL_OLLAMA_URL: http://hoistscraper-ollama:11434
+    depends_on:
+      - ollama
+    networks:
+      - app-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

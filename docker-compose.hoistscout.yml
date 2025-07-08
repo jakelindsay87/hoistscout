@@ -72,6 +72,8 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
       ENVIRONMENT: development
       DEMO_USER_ENABLED: "true"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      USE_GEMINI: ${USE_GEMINI:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -101,6 +103,8 @@ services:
       OLLAMA_BASE_URL: http://hoistscout-ollama:11434
       OLLAMA_MODEL: llama3.1
       PYTHONUNBUFFERED: "1"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      USE_GEMINI: ${USE_GEMINI:-false}
     depends_on:
       db:
         condition: service_healthy

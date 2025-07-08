@@ -28,8 +28,8 @@ RUN poetry config virtualenvs.create false
 # Generate lock file
 RUN poetry lock --no-update
 
-# Install dependencies
-RUN poetry install --no-interaction --no-ansi
+# Install dependencies including the AI extra for scrapegraphai
+RUN poetry install --no-interaction --no-ansi -E ai
 
 # Copy application code from backend directory
 COPY backend/ /app

@@ -3,8 +3,11 @@ from celery.schedules import crontab
 import asyncio
 from typing import Dict, Any
 from datetime import datetime
+import logging
 
 from .config import get_settings
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
