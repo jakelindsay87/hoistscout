@@ -87,13 +87,19 @@ def scrape_website_task(self, website_id: int):
                     scraper = BulletproofTenderScraper()
                     result = await scraper.scrape_website(website)
                 except (ImportError, ModuleNotFoundError) as e:
-                    # If scraper not available, return empty result
-                    from datetime import datetime
-                    result = type('obj', (object,), {
-                        'opportunities': [],
-                        'success': False,
-                        'error_message': f"Scraper not available: {str(e)}"
-                    })
+                    # Try demo scraper as fallback
+                    try:
+                        from .core.demo_scraper import scrape_website_demo
+                        result = await scrape_website_demo(website)
+                    except Exception as demo_error:
+                        # If demo scraper also fails, return empty result
+                        from datetime import datetime
+                        result = type('obj', (object,), {
+                            'opportunities': [],
+                            'success': False,
+                            'error_message': f"Scraper not available: {str(e)}, Demo scraper error: {str(demo_error)}",
+                            'stats': {}
+                        })
                 
                 # Save opportunities
                 for opp_data in result.opportunities:
