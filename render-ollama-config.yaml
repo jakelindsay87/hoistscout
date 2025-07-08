@@ -1,0 +1,37 @@
+# Render Blueprint for Ollama Service
+# Add this to your existing render.yaml or create separately
+
+services:
+  # Ollama Service for AI-powered extraction
+  - type: web
+    name: hoistscout-ollama
+    runtime: docker
+    dockerfilePath: ./ollama/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: 11434
+      - key: OLLAMA_HOST
+        value: 0.0.0.0:11434
+    startCommand: ollama serve
+    healthCheckPath: /api/tags
+    plan: starter
+    
+  # Alternative: Use pre-built image
+  - type: web
+    name: hoistscout-ollama-v2
+    runtime: image
+    image:
+      url: ollama/ollama:latest
+    envVars:
+      - key: PORT
+        value: 11434
+      - key: OLLAMA_HOST
+        value: 0.0.0.0:11434
+    startCommand: |
+      ollama serve &
+      sleep 10
+      ollama pull llama3.1
+      wait
+    healthCheckPath: /api/tags
+    plan: starter

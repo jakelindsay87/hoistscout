@@ -1,0 +1,20 @@
+services:
+  # Ollama Proxy Service - Lightweight proxy for LLM extraction
+  - type: web
+    name: hoistscout-ollama-proxy
+    runtime: docker
+    repo: https://github.com/jakelindsay87/hoistscout
+    dockerfilePath: ollama-proxy/Dockerfile
+    dockerContext: ollama-proxy
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: MOCK_MODE
+        value: "true"  # Start in mock mode, change to false when external Ollama is configured
+      - key: EXTERNAL_OLLAMA_URL
+        value: ""  # Set this to your external Ollama instance URL
+      - key: OLLAMA_PROXY_API_KEY
+        generateValue: true
+    healthCheckPath: /health
+    autoDeploy: true
+    plan: starter

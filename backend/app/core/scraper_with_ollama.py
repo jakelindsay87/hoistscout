@@ -51,29 +51,45 @@ class OllamaScraper:
         if len(text) > 15000:
             text = text[:15000] + "..."
         
-        # Create prompt for tender extraction
-        prompt = f"""Extract all tender/grant opportunities from the following webpage content.
-For each opportunity found, extract:
-- title: The tender/grant title
-- description: Brief description of the opportunity
-- reference_number: Any reference, ID, or tender number
-- deadline: Closing date/time (in ISO format if possible)
-- value: Estimated value or budget (as a number)
-- currency: Currency code (default to AUD for Australian tenders)
-- categories: List of relevant categories
-- location: Location or region
-- agency: Publishing agency/department
-- contact_email: Contact email if available
-- submission_method: How to submit
+        # Create enhanced prompt for tender extraction
+        prompt = f"""You are a specialised funding opportunity extraction system. Extract structured information from this webpage.
 
-Return the data as a JSON array. If no clear opportunities are found, return an empty array.
+## Core Information to Extract:
+- **Title**: Official name of the funding opportunity/tender
+- **Opportunity Type**: Grant, tender, contract, fellowship, scholarship, etc.
+- **Funder/Procurer Name**: Organisation offering the opportunity
+- **Reference Number**: Official ID, reference code, or tender number
+- **Submission Deadline**: Final submission date and time (ISO format)
+- **Publication Date**: When announced
+
+## Financial Information:
+- **Funding Value**: Minimum, maximum amounts and currency
+- **Co-funding Requirements**: Match funding percentage or amount
+
+## Eligibility:
+- **Eligible Applicants**: Organisation types, individual eligibility
+- **Geographic Restrictions**: Location-based eligibility
+- **Sector Focus**: Specific fields or industries
+
+## Details:
+- **Description**: Purpose and objectives
+- **Priority Areas**: Themes or service requirements
+- **Duration**: Length of funded period
+- **Location**: Geographic focus or project location
+- **Contact Information**: Email, phone, website
+
+## Evaluation:
+- **Assessment Criteria**: How submissions will be evaluated
+- **Submission Requirements**: Required documents and format
+
+Return as JSON array with these fields. Use null for missing information.
 
 URL: {url}
 
 CONTENT:
 {text}
 
-IMPORTANT: Return ONLY valid JSON array, no explanations."""
+IMPORTANT: Return ONLY a valid JSON array of opportunities found."""
 
         try:
             async with httpx.AsyncClient() as client:
