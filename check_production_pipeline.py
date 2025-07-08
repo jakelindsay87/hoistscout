@@ -53,7 +53,7 @@ def check_worker_health(token):
     print_status("\nChecking worker status...", "info")
     
     response = requests.get(
-        f"{API_BASE_URL}/api/jobs?status=pending",
+        f"{API_BASE_URL}/api/scraping/jobs?status=pending",
         headers=get_headers(token)
     )
     
@@ -104,9 +104,16 @@ def create_scraping_job(token, website_id):
     """Create a new scraping job"""
     print_status(f"\nCreating scraping job for website ID {website_id}...", "info")
     
+    job_data = {
+        "website_id": website_id,
+        "job_type": "full",
+        "priority": 1
+    }
+    
     response = requests.post(
-        f"{API_BASE_URL}/api/scrape/{website_id}",
-        headers=get_headers(token)
+        f"{API_BASE_URL}/api/scraping/jobs/",
+        headers=get_headers(token),
+        json=job_data
     )
     
     if response.status_code == 200:
@@ -126,7 +133,7 @@ def monitor_job(token, job_id, timeout=300):
     
     while time.time() - start_time < timeout:
         response = requests.get(
-            f"{API_BASE_URL}/api/jobs/{job_id}",
+            f"{API_BASE_URL}/api/scraping/jobs/{job_id}",
             headers=get_headers(token)
         )
         
