@@ -5,14 +5,15 @@ WORKDIR /app
 # Install minimal system dependencies
 RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
-COPY requirements.txt* pyproject.toml* poetry.lock* ./
-RUN pip install --no-cache-dir poetry && poetry config virtualenvs.create false && poetry install --no-dev || \
-    pip install --no-cache-dir -r requirements.txt || \
-    pip install fastapi uvicorn sqlalchemy psycopg2-binary redis celery
+# Copy backend files from root context
+COPY backend/requirements.txt backend/pyproject.toml backend/poetry.lock* ./
 
-# Copy application code
-COPY . .
+# Install Python dependencies
+RUN pip install --no-cache-dir poetry && poetry config virtualenvs.create false && poetry install --no-dev || \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy backend application code
+COPY backend/ .
 
 ENV PYTHONPATH=/app
 
