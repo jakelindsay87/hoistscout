@@ -39,6 +39,7 @@ class GeminiScraper:
             self.model = genai.GenerativeModel(self.settings.gemini_model)
             self.gemini_configured = True
             logger.info(f"Gemini configured with model: {self.settings.gemini_model}")
+            logger.info(f"USE_GEMINI: {self.settings.use_gemini}")
         else:
             self.gemini_configured = False
             if not GEMINI_AVAILABLE:

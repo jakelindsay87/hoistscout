@@ -17,5 +17,5 @@ COPY backend/ .
 
 ENV PYTHONPATH=/app
 
-# Run worker
-CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info"]
+# Run worker with debug script
+CMD ["python", "start_worker.py"]
