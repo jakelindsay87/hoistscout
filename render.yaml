@@ -24,6 +24,12 @@ services:
         value: https://hoistscout-ollama.onrender.com
       - key: OLLAMA_MODEL
         value: llama3.2
+      - key: USE_GEMINI
+        value: "true"
+      - key: GEMINI_API_KEY
+        generateValue: true  # You'll need to update this with your actual API key
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
     healthCheckPath: /api/health
     autoDeploy: true
     plan: starter
@@ -69,6 +75,12 @@ services:
         value: https://hoistscout-ollama.onrender.com
       - key: OLLAMA_MODEL
         value: llama3.2
+      - key: USE_GEMINI
+        value: "true"
+      - key: GEMINI_API_KEY
+        generateValue: true  # You'll need to update this with your actual API key
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
     autoDeploy: true
     plan: starter
 

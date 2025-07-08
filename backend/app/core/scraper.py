@@ -49,7 +49,7 @@ class BulletproofTenderScraper:
         self.credential_manager = SecureCredentialManager()
         
     def _init_scraper(self) -> Optional[SmartScraperGraph]:
-        """Initialize ScrapeGraphAI with Ollama configuration."""
+        """Initialize ScrapeGraphAI with LLM configuration (Gemini or Ollama)."""
         from ..config import get_settings
         settings = get_settings()
         
@@ -57,25 +57,47 @@ class BulletproofTenderScraper:
             logger.warning("ScrapeGraphAI not installed - AI scraping disabled")
             return None
         
-        if not settings.ollama_base_url:
-            logger.warning("Ollama not configured - AI scraping disabled")
+        # Configure for Google Gemini
+        if settings.use_gemini and settings.gemini_api_key:
+            logger.info("Initializing ScrapeGraphAI with Google Gemini")
+            return SmartScraperGraph(
+                prompt="Extract tender/grant opportunities with title, description, deadline, value, reference number, and document links",
+                llm_config={
+                    "api_key": settings.gemini_api_key,
+                    "model": settings.gemini_model,
+                    "temperature": 0.1,
+                    "max_tokens": 4096
+                },
+                embedder_config={
+                    "api_key": settings.gemini_api_key,
+                    "model": "models/embedding-001"  # Gemini embedding model
+                },
+                verbose=True,
+                headless=True
+            )
+        
+        # Configure for Ollama (original)
+        elif settings.ollama_base_url:
+            logger.info("Initializing ScrapeGraphAI with Ollama")
+            return SmartScraperGraph(
+                prompt="Extract tender/grant opportunities with title, description, deadline, value, reference number, and document links",
+                llm_config={
+                    "model": f"ollama/{settings.ollama_model}",
+                    "temperature": 0.1,
+                    "base_url": settings.ollama_base_url,
+                    "max_tokens": 4096
+                },
+                embedder_config={
+                    "model": "ollama/nomic-embed-text",
+                    "base_url": settings.ollama_base_url
+                },
+                verbose=True,
+                headless=True
+            )
+        
+        else:
+            logger.warning("No LLM configured (neither Gemini nor Ollama) - AI scraping disabled")
             return None
-            
-        return SmartScraperGraph(
-            prompt="Extract tender/grant opportunities with title, description, deadline, value, reference number, and document links",
-            llm_config={
-                "model": f"ollama/{settings.ollama_model}",
-                "temperature": 0.1,
-                "base_url": settings.ollama_base_url,
-                "max_tokens": 4096
-            },
-            embedder_config={
-                "model": "ollama/nomic-embed-text",
-                "base_url": settings.ollama_base_url
-            },
-            verbose=True,
-            headless=True
-        )
     
     @retry(
         stop=stop_after_attempt(3),

@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     ollama_base_url: Optional[str] = None
     ollama_model: str = "llama3.1"
     
+    # Google Gemini (alternative to Ollama)
+    gemini_api_key: Optional[str] = None
+    gemini_model: str = "gemini-1.5-flash"
+    use_gemini: bool = False  # Set to True to use Gemini instead of Ollama
+    
     # Anti-detection (optional for initial deployment)
     flaresolverr_url: Optional[str] = None
     captcha_api_key: Optional[str] = None

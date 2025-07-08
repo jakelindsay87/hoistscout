@@ -31,13 +31,16 @@ class ScraperFactory:
         """
         settings = get_settings()
         
-        # First, try the full BulletproofTenderScraper
-        if SCRAPEGRAPH_AVAILABLE and settings.ollama_base_url:
-            logger.info("Initializing BulletproofTenderScraper with ScrapeGraphAI")
+        # First, try the full BulletproofTenderScraper with Gemini or Ollama
+        if SCRAPEGRAPH_AVAILABLE and (settings.gemini_api_key or settings.ollama_base_url):
+            if settings.use_gemini and settings.gemini_api_key:
+                logger.info("Initializing BulletproofTenderScraper with ScrapeGraphAI + Gemini")
+            else:
+                logger.info("Initializing BulletproofTenderScraper with ScrapeGraphAI + Ollama")
             return BulletproofTenderScraper()
         
-        # Second, try direct Ollama integration
-        if settings.ollama_base_url:
+        # Second, try direct Ollama integration (without ScrapeGraphAI)
+        if settings.ollama_base_url and not SCRAPEGRAPH_AVAILABLE:
             logger.info("ScrapeGraphAI not available, using OllamaScraper")
             return OllamaScraper(
                 ollama_base_url=settings.ollama_base_url,
