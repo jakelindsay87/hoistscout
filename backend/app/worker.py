@@ -87,17 +87,29 @@ def scrape_website_task(self, website_id: int):
                     scraper = BulletproofTenderScraper()
                     result = await scraper.scrape_website(website)
                 except (ImportError, ModuleNotFoundError) as e:
-                    # Try demo scraper as fallback
+                    # Try Ollama scraper as fallback
                     try:
-                        from .core.demo_scraper import scrape_website_demo
-                        result = await scrape_website_demo(website)
-                    except Exception as demo_error:
-                        # If demo scraper also fails, return empty result
+                        from .config import get_settings
+                        settings = get_settings()
+                        
+                        if settings.ollama_base_url:
+                            from .core.scraper_with_ollama import OllamaScraper
+                            scraper = OllamaScraper(
+                                ollama_base_url=settings.ollama_base_url,
+                                model=settings.ollama_model
+                            )
+                            result = await scraper.scrape_website(website)
+                        else:
+                            # Try demo scraper as final fallback
+                            from .core.demo_scraper import scrape_website_demo
+                            result = await scrape_website_demo(website)
+                    except Exception as fallback_error:
+                        # If all scrapers fail, return empty result
                         from datetime import datetime
                         result = type('obj', (object,), {
                             'opportunities': [],
                             'success': False,
-                            'error_message': f"Scraper not available: {str(e)}, Demo scraper error: {str(demo_error)}",
+                            'error_message': f"Scraper not available: {str(e)}, Fallback error: {str(fallback_error)}",
                             'stats': {}
                         })
                 
