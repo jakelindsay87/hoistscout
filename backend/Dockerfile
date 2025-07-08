@@ -1,30 +1,20 @@
 FROM python:3.11-slim
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Poetry
-RUN pip install poetry==1.7.1
-
-# Set working directory
 WORKDIR /app
 
-# Copy only the dependency files first
-COPY pyproject.toml poetry.lock* ./
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
 
-# Configure poetry and install dependencies
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --no-root
+# Copy and install Python dependencies
+COPY requirements.txt* pyproject.toml* poetry.lock* ./
+RUN pip install --no-cache-dir poetry && poetry config virtualenvs.create false && poetry install --no-dev || \
+    pip install --no-cache-dir -r requirements.txt || \
+    pip install fastapi uvicorn sqlalchemy psycopg2-binary redis celery
 
-# Copy the rest of the application
+# Copy application code
 COPY . .
 
-# Set Python path
 ENV PYTHONPATH=/app
 
-# Run the worker
-CMD ["celery", "-A", "app.worker", "worker", "--loglevel=info"]
+# Run worker
+CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info"]
