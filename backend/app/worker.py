@@ -84,28 +84,28 @@ def scrape_website_task(self, website_id: int):
                         job.started_at = datetime.utcnow()
                         await db.commit()
                 
-                # Use integrated scraping pipeline that maintains PRD architecture
+                # Use Gemini scraper directly for production
                 try:
-                    from .core.scraper_integration import IntegratedScrapingPipeline, get_service_status
+                    from .core.gemini_scraper import GeminiScraper
                     
-                    # Log service status
-                    service_status = get_service_status()
-                    logger.info(f"Scraping service status: {service_status}")
+                    logger.info(f"Starting Gemini scraper for website {website_id}")
                     
-                    # Create integrated pipeline
-                    pipeline = IntegratedScrapingPipeline()
+                    # Create Gemini scraper
+                    scraper = GeminiScraper()
                     
-                    # Execute scraping with full pipeline
-                    result = await pipeline.scrape_with_full_pipeline(website)
+                    # Execute scraping
+                    result = await scraper.scrape_website(website)
+                    
+                    logger.info(f"Scraping completed: {result.total_found} opportunities found")
                     
                 except Exception as e:
-                    logger.error(f"Integrated scraping pipeline failed: {e}")
+                    logger.error(f"Gemini scraping failed: {e}")
                     # Return error result
                     from datetime import datetime
                     result = type('obj', (object,), {
                         'opportunities': [],
                         'success': False,
-                        'error_message': f"Scraping pipeline error: {str(e)}",
+                        'error_message': f"Scraping error: {str(e)}",
                         'stats': {
                             'error': str(e),
                             'timestamp': datetime.utcnow().isoformat()
