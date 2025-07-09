@@ -1,6 +1,7 @@
 FROM python:3.11-slim
 
-# Force rebuild - updated CMD
+# Force rebuild with new worker script
+ARG CACHE_BUST=1
 WORKDIR /app
 
 # Install minimal system dependencies
@@ -18,5 +19,6 @@ COPY backend/ .
 
 ENV PYTHONPATH=/app
 
-# Run worker directly with Celery
-CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info", "--queues=celery", "--pool=solo"]
+# Copy and run the robust worker startup script
+COPY backend/run_worker.py /app/
+CMD ["python", "run_worker.py"]

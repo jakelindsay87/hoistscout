@@ -22,11 +22,13 @@ logger.info(f"GEMINI_API_KEY configured: {'Yes' if settings.gemini_api_key else 
 celery_app = Celery(
     "hoistscout",
     broker=settings.redis_url,
-    backend=settings.redis_url,
-    include=['app.worker']  # Explicitly include this module
+    backend=settings.redis_url
+    # Removed include to avoid circular import
 )
 
-# Make celery_app available as 'worker' for the celery command
+# Make celery_app available as 'celery' for the celery command
+celery = celery_app
+# Also keep worker alias for backward compatibility
 worker = celery_app
 
 # Log Celery app creation
