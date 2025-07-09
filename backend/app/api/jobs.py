@@ -45,7 +45,8 @@ async def create_scraping_job(
     scrape_website_task.apply_async(
         args=[job.website_id],
         task_id=str(job.id),
-        priority=job.priority
+        priority=job.priority,
+        queue='celery'  # Explicitly set queue
     )
     
     return job

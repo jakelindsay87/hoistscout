@@ -17,4 +17,5 @@ exec python -m celery -A app.worker worker \
     --loglevel=info \
     --concurrency=1 \
     --pool=solo \
+    --queues=celery \
     -n worker@%h
