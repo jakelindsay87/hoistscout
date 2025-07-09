@@ -1,173 +1,167 @@
-#!/usr/bin/env python3
-"""
-Deployment Verification Script for HoistScout Backend
-Checks for common deployment issues before pushing changes
-"""
-
+#\!/usr/bin/env python3
+"""Verify HoistScout deployment and job processing"""
+import os
 import sys
-import re
-from pathlib import Path
-from typing import List, Dict, Tuple
+import time
+import requests
+import json
 
-def check_config_file() -> Tuple[bool, List[str]]:
-    """Check if config.py has proper optional settings"""
-    issues = []
-    config_path = Path(__file__).parent / "app" / "config.py"
-    
-    if not config_path.exists():
-        issues.append("config.py not found")
-        return False, issues
-    
-    content = config_path.read_text()
-    
-    # Check if MinIO settings are optional
-    if "minio_endpoint: str" in content and "Optional" not in content:
-        issues.append("MinIO settings should be Optional[str] for deployment")
-    
-    # Check for hardcoded localhost URLs
-    localhost_pattern = r'=\s*["\']http://localhost'
-    if re.search(localhost_pattern, content):
-        issues.append("Found hardcoded localhost URLs in config.py")
-    
-    return len(issues) == 0, issues
+API_URL = "https://hoistscout-api.onrender.com"
 
+def login():
+    """Login and get auth token"""
+    print("1. Logging in...")
+    response = requests.post(
+        f"{API_URL}/api/auth/login",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={"username": "demo", "password": "demo123"}
+    )
+    if response.status_code == 200:
+        token = response.json()["access_token"]
+        print("✓ Login successful")
+        return token
+    else:
+        print(f"✗ Login failed: {response.status_code} - {response.text}")
+        return None
 
-def check_import_errors() -> Tuple[bool, List[str]]:
-    """Check for potential import errors"""
-    issues = []
-    pyproject_path = Path(__file__).parent / "pyproject.toml"
-    
-    if not pyproject_path.exists():
-        issues.append("pyproject.toml not found")
-        return False, issues
-    
-    pyproject_content = pyproject_path.read_text()
-    
-    # Required packages that should be in pyproject.toml
-    required_packages = [
-        "minio",
-        "unstructured",
-        "loguru",
-        "fake-useragent",
-        "asyncio-throttle"
-    ]
-    
-    for package in required_packages:
-        if package not in pyproject_content:
-            issues.append(f"Missing required package: {package}")
-    
-    return len(issues) == 0, issues
+def check_health(token):
+    """Check API health"""
+    print("\n2. Checking API health...")
+    response = requests.get(f"{API_URL}/api/health")
+    if response.status_code == 200:
+        print(f"✓ API is healthy: {response.json()}")
+    else:
+        print(f"✗ API health check failed: {response.status_code}")
 
+def list_websites(token):
+    """List websites"""
+    print("\n3. Listing websites...")
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(f"{API_URL}/api/websites/", headers=headers)
+    if response.status_code == 200:
+        websites = response.json()
+        print(f"✓ Found {len(websites)} websites")
+        for w in websites[:3]:
+            print(f"  - ID: {w['id']}, Name: {w['name']}, URL: {w['url']}")
+        return websites
+    else:
+        print(f"✗ Failed to list websites: {response.status_code}")
+        return []
 
-def check_dockerfile() -> Tuple[bool, List[str]]:
-    """Check if Dockerfile has necessary system dependencies"""
-    issues = []
-    dockerfile_path = Path(__file__).parent / "Dockerfile"
-    
-    if not dockerfile_path.exists():
-        issues.append("Dockerfile not found")
-        return False, issues
-    
-    content = dockerfile_path.read_text()
-    
-    # Check for required system packages
-    required_packages = ["poppler-utils", "tesseract-ocr"]
-    for package in required_packages:
-        if package not in content:
-            issues.append(f"Missing system dependency in Dockerfile: {package}")
-    
-    # Check for correct COPY paths
-    if "COPY backend/" not in content:
-        issues.append("Dockerfile should use 'COPY backend/' prefix for correct build context")
-    
-    return len(issues) == 0, issues
+def create_job(token, website_id):
+    """Create a scraping job"""
+    print(f"\n4. Creating scraping job for website {website_id}...")
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "website_id": website_id,
+        "job_type": "test",
+        "priority": 10
+    }
+    response = requests.post(
+        f"{API_URL}/api/scraping/jobs/",
+        headers=headers,
+        json=data
+    )
+    if response.status_code == 200 or response.status_code == 201:
+        job = response.json()
+        print(f"✓ Job created: ID={job['id']}, Status={job['status']}")
+        return job['id']
+    else:
+        print(f"✗ Failed to create job: {response.status_code} - {response.text}")
+        return None
 
+def check_job_status(token, job_id, max_wait=60):
+    """Check job status"""
+    print(f"\n5. Monitoring job {job_id}...")
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    for i in range(max_wait // 5):
+        response = requests.get(
+            f"{API_URL}/api/scraping/jobs/{job_id}",
+            headers=headers
+        )
+        if response.status_code == 200:
+            job = response.json()
+            print(f"  [{i*5}s] Status: {job['status']}", end="")
+            
+            if job['started_at']:
+                print(f" (started at {job['started_at']})", end="")
+            if job['completed_at']:
+                print(f" (completed at {job['completed_at']})", end="")
+            if job['error_message']:
+                print(f" ERROR: {job['error_message']}", end="")
+            print()
+            
+            if job['status'] in ['completed', 'failed']:
+                return job
+        else:
+            print(f"✗ Failed to check job: {response.status_code}")
+            return None
+        
+        time.sleep(5)
+    
+    print("✗ Job did not complete within timeout")
+    return None
 
-def check_external_service_handling() -> Tuple[bool, List[str]]:
-    """Check if external services are properly handled as optional"""
-    issues = []
+def check_opportunities(token):
+    """Check if any opportunities were created"""
+    print("\n6. Checking opportunities...")
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(f"{API_URL}/api/opportunities/", headers=headers)
     
-    # Check PDF processor
-    pdf_processor_path = Path(__file__).parent / "app" / "core" / "pdf_processor.py"
-    if pdf_processor_path.exists():
-        content = pdf_processor_path.read_text()
-        if "if self.minio_client:" not in content:
-            issues.append("PDF processor should handle None minio_client")
-    
-    # Check health endpoint
-    health_path = Path(__file__).parent / "app" / "api" / "health.py"
-    if health_path.exists():
-        content = health_path.read_text()
-        if "if settings.minio_endpoint:" not in content:
-            issues.append("Health check should handle optional MinIO")
-    
-    return len(issues) == 0, issues
-
-
-def check_render_yaml() -> Tuple[bool, List[str]]:
-    """Check render.yaml configuration"""
-    issues = []
-    render_path = Path(__file__).parent.parent / "render.yaml"
-    
-    if not render_path.exists():
-        issues.append("render.yaml not found in repository root")
-        return False, issues
-    
-    content = render_path.read_text()
-    
-    # Check for correct dockerfile paths
-    if "./backend/Dockerfile" in content:
-        issues.append("render.yaml should use 'backend/Dockerfile' without leading ./")
-    
-    # Check for missing critical env vars
-    if "SECRET_KEY" not in content:
-        issues.append("Missing SECRET_KEY in render.yaml")
-    
-    if "DATABASE_URL" not in content:
-        issues.append("Missing DATABASE_URL in render.yaml")
-    
-    return len(issues) == 0, issues
-
+    if response.status_code == 200:
+        opportunities = response.json()
+        print(f"✓ Found {len(opportunities)} opportunities")
+        for opp in opportunities[:3]:
+            print(f"  - {opp.get('title', 'No title')}")
+    else:
+        print(f"✗ Failed to check opportunities: {response.status_code}")
 
 def main():
-    """Run all deployment checks"""
-    print("🔍 HoistScout Backend Deployment Verification")
-    print("=" * 50)
+    print("=" * 80)
+    print("HOISTSCOUT DEPLOYMENT VERIFICATION")
+    print("=" * 80)
     
-    all_passed = True
+    # Login
+    token = login()
+    if not token:
+        print("\nFailed at login stage. API might not be deployed correctly.")
+        return
     
-    # Run all checks
-    checks = [
-        ("Config File", check_config_file),
-        ("Python Dependencies", check_import_errors),
-        ("Dockerfile", check_dockerfile),
-        ("External Services", check_external_service_handling),
-        ("Render.yaml", check_render_yaml)
-    ]
+    # Check health
+    check_health(token)
     
-    for check_name, check_func in checks:
-        passed, issues = check_func()
-        
-        if passed:
-            print(f"✅ {check_name}: PASSED")
-        else:
-            print(f"❌ {check_name}: FAILED")
-            for issue in issues:
-                print(f"   - {issue}")
-            all_passed = False
-        print()
+    # List websites
+    websites = list_websites(token)
+    if not websites:
+        print("\nNo websites found. Cannot proceed with job creation.")
+        return
     
-    # Summary
-    print("=" * 50)
-    if all_passed:
-        print("✅ All deployment checks passed!")
-        print("The backend should deploy successfully.")
-        return 0
+    # Create job for first website
+    website_id = websites[0]['id']
+    job_id = create_job(token, website_id)
+    if not job_id:
+        print("\nFailed to create job. Check API logs for Celery connection issues.")
+        return
+    
+    # Monitor job
+    final_job = check_job_status(token, job_id)
+    if final_job and final_job['status'] == 'completed':
+        print("\n✅ SUCCESS\! Job was processed by the worker\!")
+        check_opportunities(token)
+    elif final_job and final_job['status'] == 'failed':
+        print(f"\n❌ Job failed with error: {final_job.get('error_message', 'Unknown error')}")
     else:
-        print("❌ Deployment checks failed!")
-        print("Fix the issues above before deploying.")
-        return 1
-
+        print("\n❌ Job is still pending. Worker might not be processing tasks.")
+        print("\nPossible issues:")
+        print("1. Worker not running or crashed")
+        print("2. Redis connection issues")
+        print("3. Task not being sent to Celery queue")
+        print("4. Worker not listening to correct queue")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
+EOF < /dev/null

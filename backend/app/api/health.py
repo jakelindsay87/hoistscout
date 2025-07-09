@@ -24,14 +24,87 @@ settings = get_settings()
 
 @router.get("/health")
 async def health_check():
-    """Basic health check endpoint."""
-    return {
+    """Basic health check endpoint with Redis connectivity info."""
+    result = {
         "status": "healthy", 
         "service": "HoistScout API",
         "timestamp": datetime.utcnow().isoformat(),
         "environment": settings.environment,
-        "python_version": sys.version
+        "python_version": sys.version,
+        "redis": {
+            "url": None,
+            "connected": False,
+            "error": None,
+            "ping_latency_ms": None
+        },
+        "celery": {
+            "broker_url": None,
+            "connected": False,
+            "error": None
+        }
     }
+    
+    # Mask Redis URL (hide password if present)
+    try:
+        redis_url = settings.redis_url
+        if '@' in redis_url and ':' in redis_url:
+            # Extract parts to mask password
+            protocol_end = redis_url.find('://') + 3
+            at_sign = redis_url.find('@', protocol_end)
+            if at_sign > -1:
+                user_pass_start = protocol_end
+                colon_pos = redis_url.find(':', user_pass_start)
+                if colon_pos > -1 and colon_pos < at_sign:
+                    # Has username:password format
+                    username = redis_url[user_pass_start:colon_pos]
+                    masked_url = redis_url[:colon_pos+1] + "****" + redis_url[at_sign:]
+                else:
+                    # Just password, no username
+                    masked_url = redis_url[:protocol_end] + "****" + redis_url[at_sign:]
+                result["redis"]["url"] = masked_url
+            else:
+                # No authentication in URL
+                result["redis"]["url"] = redis_url
+        else:
+            result["redis"]["url"] = redis_url
+            
+        # Same masking for Celery broker URL (which is the same as Redis URL)
+        result["celery"]["broker_url"] = result["redis"]["url"]
+        
+    except Exception as e:
+        result["redis"]["url"] = "Error masking URL"
+        result["redis"]["error"] = str(e)
+    
+    # Test Redis connection
+    r = None
+    try:
+        start_time = datetime.utcnow()
+        r = redis.from_url(settings.redis_url)
+        await r.ping()
+        latency = (datetime.utcnow() - start_time).total_seconds() * 1000
+        
+        result["redis"]["connected"] = True
+        result["redis"]["ping_latency_ms"] = round(latency, 2)
+        
+        # Test if Celery can see the broker (check for Celery-related keys)
+        celery_keys = await r.keys("celery*")
+        result["celery"]["connected"] = True
+        result["celery"]["queue_count"] = len(celery_keys)
+        
+    except Exception as e:
+        result["redis"]["connected"] = False
+        result["redis"]["error"] = str(e)
+        result["celery"]["connected"] = False
+        result["celery"]["error"] = f"Redis connection failed: {str(e)}"
+        result["status"] = "degraded"
+    finally:
+        if r:
+            try:
+                await r.close()
+            except:
+                pass
+    
+    return result
 
 
 @router.get("/health/ready")
