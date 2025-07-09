@@ -7,19 +7,30 @@ import logging
 
 from .config import get_settings
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
+
+# Log configuration
+logger.info(f"Worker starting with Redis URL: {settings.redis_url}")
+logger.info(f"USE_GEMINI: {settings.use_gemini}")
+logger.info(f"GEMINI_API_KEY configured: {'Yes' if settings.gemini_api_key else 'No'}")
 
 # Create Celery app
 celery_app = Celery(
     "hoistscout",
     broker=settings.redis_url,
-    backend=settings.redis_url
+    backend=settings.redis_url,
+    include=['app.worker']  # Explicitly include this module
 )
 
 # Make celery_app available as 'worker' for the celery command
 worker = celery_app
+
+# Log Celery app creation
+logger.info(f"Celery app created with broker: {celery_app.conf.broker_url}")
 
 # Configure Celery
 celery_app.conf.update(

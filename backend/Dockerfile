@@ -17,9 +17,5 @@ COPY backend/ .
 
 ENV PYTHONPATH=/app
 
-# Copy entrypoint script
-COPY backend/worker_entrypoint.sh /app/
-RUN chmod +x /app/worker_entrypoint.sh
-
-# Run worker
-CMD ["/app/worker_entrypoint.sh"]
+# Run worker directly with Celery
+CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info", "--queues=celery", "--pool=solo"]
