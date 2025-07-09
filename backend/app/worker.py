@@ -4,16 +4,21 @@ import asyncio
 from typing import Dict, Any
 from datetime import datetime
 import logging
+import traceback
 
 from .config import get_settings
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging with more detail
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
 # Log configuration
+logger.info("=== CELERY WORKER INITIALIZATION ===")
 logger.info(f"Worker starting with Redis URL: {settings.redis_url}")
 logger.info(f"USE_GEMINI: {settings.use_gemini}")
 logger.info(f"GEMINI_API_KEY configured: {'Yes' if settings.gemini_api_key else 'No'}")
@@ -35,6 +40,7 @@ worker = celery_app
 
 # Log Celery app creation
 logger.info(f"Celery app created with broker: {celery_app.conf.broker_url}")
+logger.info(f"Celery app name: {celery_app.main}")
 
 # Configure Celery
 celery_app.conf.update(
@@ -52,6 +58,13 @@ celery_app.conf.update(
     task_create_missing_queues=True,
 )
 
+# Log final configuration
+logger.info("=== CELERY CONFIGURATION ===")
+logger.info(f"Default queue: {celery_app.conf.task_default_queue}")
+logger.info(f"Create missing queues: {celery_app.conf.task_create_missing_queues}")
+logger.info(f"Task serializer: {celery_app.conf.task_serializer}")
+logger.info(f"Task time limit: {celery_app.conf.task_time_limit}s")
+
 # Configure periodic tasks
 celery_app.conf.beat_schedule = {
     "scrape-all-active-websites": {
@@ -64,12 +77,24 @@ celery_app.conf.beat_schedule = {
     },
 }
 
+# Log registered tasks
+logger.info("=== REGISTERED CELERY TASKS ===")
+for task_name in celery_app.tasks:
+    logger.info(f"- {task_name}")
+
 
 @celery_app.task(bind=True, name='app.worker.scrape_website_task', max_retries=3)
 def scrape_website_task(self, website_id: int):
     """Scrape a single website."""
+    logger.info(f"=== SCRAPE_WEBSITE_TASK STARTED ===")
+    logger.info(f"Task ID: {self.request.id}")
+    logger.info(f"Website ID: {website_id}")
+    logger.info(f"Retry count: {self.request.retries}")
+    logger.info(f"Queue: {self.request.delivery_info.get('routing_key', 'unknown')}")
+    
     try:
         # Run async scraping in sync context
+        logger.info("Creating new event loop for async operations...")
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
@@ -154,14 +179,25 @@ def scrape_website_task(self, website_id: int):
                 
                 await db.commit()
                 
+                logger.info(f"Database commit successful for website {website_id}")
                 return result.stats
         
+        logger.info("Starting async scraping operation...")
         result = loop.run_until_complete(run_scraping())
+        logger.info(f"=== SCRAPE_WEBSITE_TASK COMPLETED SUCCESSFULLY ===")
+        logger.info(f"Result: {result}")
         return result
         
     except Exception as exc:
+        logger.error(f"=== SCRAPE_WEBSITE_TASK FAILED ===")
+        logger.error(f"Error type: {type(exc).__name__}")
+        logger.error(f"Error message: {str(exc)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
         # Log error and retry
-        self.retry(exc=exc, countdown=60 * (self.request.retries + 1))
+        retry_countdown = 60 * (self.request.retries + 1)
+        logger.info(f"Retrying task in {retry_countdown} seconds...")
+        self.retry(exc=exc, countdown=retry_countdown)
 
 
 @celery_app.task
