@@ -33,6 +33,8 @@ celery_app.conf.update(
     task_soft_time_limit=25 * 60,  # 25 minutes
     worker_prefetch_multiplier=1,
     worker_max_tasks_per_child=1000,
+    task_default_queue="celery",
+    task_create_missing_queues=True,
 )
 
 # Configure periodic tasks
@@ -48,7 +50,7 @@ celery_app.conf.beat_schedule = {
 }
 
 
-@celery_app.task(bind=True, max_retries=3)
+@celery_app.task(bind=True, name='app.worker.scrape_website_task', max_retries=3)
 def scrape_website_task(self, website_id: int):
     """Scrape a single website."""
     try:

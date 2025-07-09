@@ -17,5 +17,9 @@ COPY backend/ .
 
 ENV PYTHONPATH=/app
 
-# Run worker with debug script
-CMD ["python", "start_worker.py"]
+# Copy entrypoint script
+COPY backend/worker_entrypoint.sh /app/
+RUN chmod +x /app/worker_entrypoint.sh
+
+# Run worker
+CMD ["/app/worker_entrypoint.sh"]
