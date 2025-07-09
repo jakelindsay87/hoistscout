@@ -1,11 +1,10 @@
 from celery import Celery
 from celery.schedules import crontab
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from datetime import datetime
 import logging
 import traceback
-import os
 
 from .config import get_settings
 
@@ -24,36 +23,12 @@ logger.info(f"Worker starting with Redis URL: {settings.redis_url}")
 logger.info(f"USE_GEMINI: {settings.use_gemini}")
 logger.info(f"GEMINI_API_KEY configured: {'Yes' if settings.gemini_api_key else 'No'}")
 
-# Check if we're on Render and need SSL
-is_render = os.environ.get("RENDER") is not None
-redis_url = settings.redis_url
-
-# Create Celery app with proper SSL configuration if needed
-celery_config = {
-    "broker_url": redis_url,
-    "result_backend": redis_url,
-}
-
-# If Redis URL uses SSL/TLS
-if redis_url.startswith("rediss://") or "redis+ssl://" in redis_url:
-    logger.info("Configuring Celery for SSL/TLS Redis connection")
-    celery_config.update({
-        "redis_backend_use_ssl": {
-            "ssl_cert_reqs": None,
-            "ssl_keyfile": None,
-            "ssl_certfile": None,
-            "ssl_ca_certs": None,
-        },
-        "broker_use_ssl": {
-            "ssl_cert_reqs": None,
-            "ssl_keyfile": None,
-            "ssl_certfile": None,
-            "ssl_ca_certs": None,
-        }
-    })
-
-celery_app = Celery("hoistscout")
-celery_app.config_from_object(celery_config)
+# Create Celery app
+celery_app = Celery(
+    "hoistscout",
+    broker=settings.redis_url,
+    backend=settings.redis_url
+)
 
 # Import tasks after app creation to avoid circular import
 celery_app.autodiscover_tasks(['app'], related_name='worker')
@@ -89,7 +64,6 @@ logger.info(f"Default queue: {celery_app.conf.task_default_queue}")
 logger.info(f"Create missing queues: {celery_app.conf.task_create_missing_queues}")
 logger.info(f"Task serializer: {celery_app.conf.task_serializer}")
 logger.info(f"Task time limit: {celery_app.conf.task_time_limit}s")
-logger.info(f"SSL enabled: {'redis_backend_use_ssl' in celery_app.conf}")
 
 # Configure periodic tasks
 celery_app.conf.beat_schedule = {
@@ -107,23 +81,6 @@ celery_app.conf.beat_schedule = {
 logger.info("=== REGISTERED CELERY TASKS ===")
 for task_name in celery_app.tasks:
     logger.info(f"- {task_name}")
-
-
-def safe_get_job_id(task_id: str) -> Optional[int]:
-    """Safely convert Celery task ID to database job ID."""
-    if not task_id:
-        return None
-    
-    try:
-        # If task_id is numeric string, convert to int
-        if task_id.isdigit():
-            return int(task_id)
-        else:
-            logger.debug(f"Task ID '{task_id}' is not numeric (likely a Celery UUID)")
-            return None
-    except (ValueError, AttributeError) as e:
-        logger.warning(f"Could not convert task ID '{task_id}' to integer: {e}")
-        return None
 
 
 @celery_app.task(bind=True, name='app.worker.scrape_website_task', max_retries=3)
@@ -157,26 +114,27 @@ def scrape_website_task(self, website_id: int):
                 if not website:
                     raise ValueError(f"Website {website_id} not found")
                 
-                # Update job status - handle type conversion
-                job_id = safe_get_job_id(self.request.id)
+                # Update job status
+                job_id = self.request.id
                 job = None
-                
-                if job_id is not None:
+                if job_id:
+                    # Try to convert job_id to integer if it's numeric
                     try:
-                        job_stmt = select(ScrapingJob).where(ScrapingJob.id == job_id)
-                        job_result = await db.execute(job_stmt)
-                        job = job_result.scalar_one_or_none()
-                        
-                        if job:
-                            logger.info(f"Found job {job_id} in database, updating status")
-                            job.status = JobStatus.RUNNING
-                            job.started_at = datetime.utcnow()
-                            await db.commit()
+                        # Check if the job_id is a numeric string
+                        if job_id.isdigit():
+                            numeric_job_id = int(job_id)
+                            job_stmt = select(ScrapingJob).where(ScrapingJob.id == numeric_job_id)
+                            job_result = await db.execute(job_stmt)
+                            job = job_result.scalar_one_or_none()
+                            if job:
+                                job.status = JobStatus.RUNNING
+                                job.started_at = datetime.utcnow()
+                                await db.commit()
                         else:
-                            logger.warning(f"Job {job_id} not found in database")
-                    except Exception as e:
-                        logger.error(f"Failed to update job status: {e}")
-                        # Continue with scraping even if job update fails
+                            # Job ID is not numeric, likely a Celery UUID
+                            logger.warning(f"Job ID '{job_id}' is not numeric, skipping job status update")
+                    except (ValueError, AttributeError) as e:
+                        logger.warning(f"Could not convert job ID '{job_id}' to integer: {e}")
                 
                 # Use Gemini scraper directly for production
                 try:
@@ -224,15 +182,11 @@ def scrape_website_task(self, website_id: int):
                     )
                     db.add(opportunity)
                 
-                # Update job status if we have a job record
+                # Update job status
                 if job:
-                    try:
-                        job.status = JobStatus.COMPLETED
-                        job.completed_at = datetime.utcnow()
-                        job.stats = result.stats
-                        logger.info(f"Updating job {job_id} to COMPLETED status")
-                    except Exception as e:
-                        logger.error(f"Failed to update job completion status: {e}")
+                    job.status = JobStatus.COMPLETED
+                    job.completed_at = datetime.utcnow()
+                    job.stats = result.stats
                 
                 await db.commit()
                 
