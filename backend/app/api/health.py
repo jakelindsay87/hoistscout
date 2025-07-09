@@ -5,6 +5,9 @@ import httpx
 import sys
 import os
 from datetime import datetime, timedelta
+import json
+import traceback
+import redis.asyncio as redis
 
 from ..database import get_db
 from ..config import get_settings
@@ -214,3 +217,155 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
             "jobs_this_week": 0,
             "last_scrape": None
         }
+
+
+@router.get("/health/redis")
+async def redis_connectivity_check():
+    """
+    Comprehensive Redis connectivity and Celery queue check.
+    This endpoint is accessible without authentication for easy testing.
+    """
+    result = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "redis_url": settings.redis_url[:30] + "..." if len(settings.redis_url) > 30 else settings.redis_url,
+        "connection": {
+            "status": "disconnected",
+            "error": None,
+            "latency_ms": None
+        },
+        "operations": {
+            "set": {"success": False, "error": None},
+            "get": {"success": False, "value": None, "error": None},
+            "delete": {"success": False, "error": None}
+        },
+        "celery": {
+            "queues": {},
+            "total_tasks": 0,
+            "unacked_tasks": 0,
+            "error": None
+        },
+        "redis_info": {}
+    }
+    
+    r = None
+    try:
+        # Test Redis connection
+        start_time = datetime.utcnow()
+        r = redis.from_url(settings.redis_url, decode_responses=True)
+        await r.ping()
+        latency = (datetime.utcnow() - start_time).total_seconds() * 1000
+        
+        result["connection"]["status"] = "connected"
+        result["connection"]["latency_ms"] = round(latency, 2)
+        
+        # Test basic operations
+        test_key = f"hoistscout:health:test:{datetime.utcnow().timestamp()}"
+        test_value = f"test_value_{datetime.utcnow().isoformat()}"
+        
+        # SET operation
+        try:
+            await r.set(test_key, test_value, ex=60)  # Expire in 60 seconds
+            result["operations"]["set"]["success"] = True
+        except Exception as e:
+            result["operations"]["set"]["error"] = str(e)
+        
+        # GET operation
+        try:
+            retrieved_value = await r.get(test_key)
+            result["operations"]["get"]["success"] = True
+            result["operations"]["get"]["value"] = retrieved_value
+            if retrieved_value != test_value:
+                result["operations"]["get"]["error"] = "Value mismatch"
+        except Exception as e:
+            result["operations"]["get"]["error"] = str(e)
+        
+        # DELETE operation
+        try:
+            await r.delete(test_key)
+            result["operations"]["delete"]["success"] = True
+        except Exception as e:
+            result["operations"]["delete"]["error"] = str(e)
+        
+        # Check Celery queues
+        try:
+            # Get all keys
+            all_keys = await r.keys("*")
+            
+            # Check specific Celery queues
+            celery_queues = ["celery", "celery.priority.high", "celery.priority.low"]
+            
+            for queue_name in celery_queues:
+                if queue_name in all_keys:
+                    queue_length = await r.llen(queue_name)
+                    result["celery"]["queues"][queue_name] = {
+                        "length": queue_length,
+                        "tasks": []
+                    }
+                    
+                    # Get first few tasks for inspection
+                    if queue_length > 0:
+                        for i in range(min(3, queue_length)):
+                            try:
+                                task_data = await r.lindex(queue_name, i)
+                                if task_data:
+                                    task = json.loads(task_data)
+                                    task_info = {
+                                        "id": task.get("headers", {}).get("id", "unknown"),
+                                        "name": task.get("headers", {}).get("task", "unknown"),
+                                        "args": task.get("body", {}).get("args", [])
+                                    }
+                                    result["celery"]["queues"][queue_name]["tasks"].append(task_info)
+                            except Exception as e:
+                                result["celery"]["queues"][queue_name]["tasks"].append({
+                                    "error": f"Failed to parse task: {str(e)}"
+                                })
+                    
+                    result["celery"]["total_tasks"] += queue_length
+            
+            # Check for unacknowledged tasks
+            unacked_key = "unacked"
+            if unacked_key in all_keys:
+                unacked_count = await r.hlen(unacked_key)
+                result["celery"]["unacked_tasks"] = unacked_count
+            
+            # Check for Celery-related keys
+            celery_related_keys = [k for k in all_keys if "celery" in k.lower()]
+            result["celery"]["related_keys"] = celery_related_keys[:10]  # Limit to first 10
+            
+        except Exception as e:
+            result["celery"]["error"] = f"Failed to check Celery queues: {str(e)}"
+        
+        # Get Redis server info (limited subset)
+        try:
+            info = await r.info()
+            result["redis_info"] = {
+                "redis_version": info.get("redis_version", "unknown"),
+                "connected_clients": info.get("connected_clients", 0),
+                "used_memory_human": info.get("used_memory_human", "unknown"),
+                "uptime_in_seconds": info.get("uptime_in_seconds", 0),
+                "uptime_in_days": info.get("uptime_in_days", 0),
+                "role": info.get("role", "unknown")
+            }
+        except Exception as e:
+            result["redis_info"]["error"] = f"Failed to get Redis info: {str(e)}"
+        
+    except Exception as e:
+        result["connection"]["status"] = "failed"
+        result["connection"]["error"] = str(e)
+        result["connection"]["traceback"] = traceback.format_exc()
+    
+    finally:
+        # Clean up connection
+        if r:
+            try:
+                await r.close()
+            except:
+                pass
+    
+    # Determine overall health
+    result["healthy"] = (
+        result["connection"]["status"] == "connected" and
+        all(op["success"] for op in result["operations"].values())
+    )
+    
+    return result
