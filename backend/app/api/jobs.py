@@ -5,6 +5,7 @@ from sqlalchemy import select
 from datetime import datetime
 import logging
 import traceback
+import os
 
 from ..database import get_db
 from ..models.user import User, UserRole
@@ -80,21 +81,32 @@ async def create_scraping_job(
                 logger.error(f"❌ Celery connection check failed: {str(conn_error)}")
                 logger.error(f"Connection error traceback: {traceback.format_exc()}")
             
-            # Send task to Celery
-            logger.info(f"Sending task to Celery queue 'celery' with task_id: {job.id}")
-            logger.info(f"Task arguments: [website_id={job.website_id}]")
-            
-            result = scrape_website_task.apply_async(
-                args=[job.website_id],
-                task_id=str(job.id),
-                priority=job.priority,
-                queue='celery'  # Explicitly set queue
-            )
-            
-            logger.info(f"✅ Task sent successfully!")
-            logger.info(f"Task ID: {result.id}")
-            logger.info(f"Task state: {result.state}")
-            logger.info(f"Task backend: {result.backend}")
+            # Check if we should use database queue
+            if os.getenv('USE_DB_QUEUE', 'false').lower() == 'true':
+                logger.info(f"📤 Using database queue for task submission")
+                from ..db_queue import db_queue
+                result = db_queue.scrape_website_task.apply_async(
+                    args=[job.website_id],
+                    task_id=str(job.id),
+                    priority=job.priority
+                )
+                logger.info(f"✅ Task sent to database queue! Result ID: {result.id}")
+            else:
+                # Send task to Celery
+                logger.info(f"Sending task to Celery queue 'celery' with task_id: {job.id}")
+                logger.info(f"Task arguments: [website_id={job.website_id}]")
+                
+                result = scrape_website_task.apply_async(
+                    args=[job.website_id],
+                    task_id=str(job.id),
+                    priority=job.priority,
+                    queue='celery'  # Explicitly set queue
+                )
+                
+                logger.info(f"✅ Task sent successfully!")
+                logger.info(f"Task ID: {result.id}")
+                logger.info(f"Task state: {result.state}")
+                logger.info(f"Task backend: {result.backend}")
             
             # Try to get task info
             try:
