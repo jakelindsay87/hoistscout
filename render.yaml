@@ -59,7 +59,7 @@ services:
     runtime: docker
     repo: https://github.com/jakelindsay87/hoistscout
     dockerfilePath: backend/Dockerfile
-    dockerCommand: cd /app && celery -A app.worker worker --loglevel=info
+    # dockerCommand removed - using CMD from Dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:
