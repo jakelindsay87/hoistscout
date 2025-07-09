@@ -7,7 +7,10 @@ import os
 from datetime import datetime, timedelta
 import json
 import traceback
-import redis.asyncio as redis
+try:
+    import redis.asyncio as redis
+except ImportError:
+    import redis
 
 from ..database import get_db
 from ..config import get_settings
@@ -48,7 +51,10 @@ async def readiness_check(db: AsyncSession = Depends(get_db)):
     
     # Check Redis
     try:
-        import redis.asyncio as redis
+        try:
+    import redis.asyncio as redis
+except ImportError:
+    import redis
         r = redis.from_url(settings.redis_url)
         await r.ping()
         await r.close()
