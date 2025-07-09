@@ -56,6 +56,11 @@ except Exception as e:
 # Import and configure Celery
 print("\n🎯 Importing Celery App...")
 try:
+    # Add current directory to Python path
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    print(f"  📁 Added to Python path: {os.path.dirname(os.path.abspath(__file__))}")
+    print(f"  📁 Current working directory: {os.getcwd()}")
+    
     from app.worker import celery_app, scrape_website_task
     print("  ✅ Successfully imported Celery app")
     

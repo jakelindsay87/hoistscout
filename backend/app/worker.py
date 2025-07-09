@@ -15,8 +15,7 @@ settings = get_settings()
 celery_app = Celery(
     "hoistscout",
     broker=settings.redis_url,
-    backend=settings.redis_url,
-    include=["app.worker"]
+    backend=settings.redis_url
 )
 
 # Make celery_app available as 'worker' for the celery command
