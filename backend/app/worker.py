@@ -23,8 +23,10 @@ celery_app = Celery(
     "hoistscout",
     broker=settings.redis_url,
     backend=settings.redis_url
-    # Removed include to avoid circular import
 )
+
+# Import tasks after app creation to avoid circular import
+celery_app.autodiscover_tasks(['app'], related_name='worker')
 
 # Make celery_app available as 'celery' for the celery command
 celery = celery_app

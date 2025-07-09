@@ -22,5 +22,6 @@ ENV PYTHONPATH=/app
 # Copy worker scripts
 COPY backend/run_worker.py /app/
 COPY backend/simple_worker.py /app/
-# Use simple worker for now to debug
-CMD ["python", "simple_worker.py"]
+COPY backend/enhanced_worker.py /app/
+# Use enhanced worker with better debugging
+CMD ["python", "enhanced_worker.py"]
