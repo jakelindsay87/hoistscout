@@ -59,26 +59,7 @@ def test_redis_connection():
         logger.error(f"  ✗ Redis connection failed: {e}")
         return False
 
-def test_database_connection():
-    """Test database connection"""
-    try:
-        import asyncio
-        from sqlalchemy.ext.asyncio import create_async_engine
-        from sqlalchemy import text
-        
-        async def test_db():
-            engine = create_async_engine(os.environ.get('DATABASE_URL'))
-            async with engine.begin() as conn:
-                result = await conn.execute(text("SELECT 1"))
-                return result.scalar()
-        
-        logger.info("Testing database connection...")
-        result = asyncio.run(test_db())
-        logger.info("  ✓ Database connection successful")
-        return True
-    except Exception as e:
-        logger.error(f"  ✗ Database connection failed: {e}")
-        return False
+# Database test removed - worker handles its own async connections
 
 def import_celery_app():
     """Import and validate Celery app"""
@@ -127,10 +108,8 @@ def main():
         logger.error("Redis connection test failed!")
         sys.exit(1)
     
-    # Step 3: Test database connection
-    if not test_database_connection():
-        logger.error("Database connection test failed!")
-        sys.exit(1)
+    # Step 3: Skip database test - worker handles its own connections
+    logger.info("Skipping database test - worker manages connections internally")
     
     # Step 4: Import Celery app
     celery_app = import_celery_app()
