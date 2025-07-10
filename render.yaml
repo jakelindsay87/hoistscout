@@ -2,111 +2,59 @@ services:
   # Backend API Service
   - type: web
     name: hoistscout-api
-    runtime: docker
+    env: docker
     repo: https://github.com/jakelindsay87/hoistscout
-    dockerfilePath: backend/Dockerfile
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: hoistscout-db
-          property: connectionString
-      - key: REDIS_URL
-        value: redis://red-d1hljoruibrs73fe7vkg:6379
+        sync: false
       - key: SECRET_KEY
         generateValue: true
-      - key: ENVIRONMENT
-        value: production
-      - key: PYTHONUNBUFFERED
-        value: "1"
-      - key: PYTHONPATH
-        value: "/app"
-      # - key: OLLAMA_BASE_URL
-      #   value: https://hoistscout-ollama.onrender.com
-      - key: OLLAMA_MODEL
-        value: llama3.2
+      - key: REDIS_URL
+        value: redis://default:hoistscout2024@redis-19234.c258.us-east-1-4.ec2.cloud.redislabs.com:19234
       - key: USE_GEMINI
         value: "true"
       - key: GEMINI_API_KEY
-        sync: false  # You'll need to update this with your actual API key
-      - key: GEMINI_MODEL
-        value: gemini-1.5-flash
-    healthCheckPath: /api/health
-    autoDeploy: true
-    plan: starter
+        sync: false
+      - key: ENABLE_DEMO_MODE
+        value: "true"
+      - key: ENVIRONMENT
+        value: production
+      - key: USE_DB_QUEUE
+        value: "false"
+
+  # Worker Service - BACKGROUND WORKER TYPE
+  - type: web
+    name: hoistscout-worker
+    env: docker
+    repo: https://github.com/jakelindsay87/hoistscout
+    branch: main
+    dockerfilePath: ./backend/Dockerfile.worker
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        value: redis://default:hoistscout2024@redis-19234.c258.us-east-1-4.ec2.cloud.redislabs.com:19234
+      - key: USE_GEMINI
+        value: "true"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: USE_DB_QUEUE
+        value: "false"
 
   # Frontend Service
   - type: web
     name: hoistscout-frontend
-    runtime: docker
+    env: docker
     repo: https://github.com/jakelindsay87/hoistscout
-    dockerfilePath: frontend/Dockerfile
-    buildCommand: docker build --build-arg NEXT_PUBLIC_API_URL=https://hoistscout-api.onrender.com -f frontend/Dockerfile .
+    branch: main
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
     envVars:
-      - key: NEXT_PUBLIC_API_URL
+      - key: VITE_API_URL
         value: https://hoistscout-api.onrender.com
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_TELEMETRY_DISABLED
-        value: "1"
-      - key: NODE_OPTIONS
-        value: "--max-old-space-size=512"
-    autoDeploy: true
-    plan: starter
-
-  # Worker Service for background tasks
-  - type: worker
-    name: hoistscout-worker
-    runtime: docker
-    repo: https://github.com/jakelindsay87/hoistscout
-    dockerfilePath: backend/Dockerfile
-    # dockerCommand removed - using CMD from Dockerfile
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: hoistscout-db
-          property: connectionString
-      - key: REDIS_URL
-        value: redis://red-d1hljoruibrs73fe7vkg:6379
-      - key: PYTHONUNBUFFERED
-        value: "1"
-      - key: PYTHONPATH
-        value: "/app"
-      # - key: OLLAMA_BASE_URL
-      #   value: https://hoistscout-ollama.onrender.com
-      - key: OLLAMA_MODEL
-        value: llama3.2
-      - key: USE_GEMINI
-        value: "true"
-      - key: GEMINI_API_KEY
-        sync: false  # You'll need to update this with your actual API key
-      - key: GEMINI_MODEL
-        value: gemini-1.5-flash
-      - key: SECRET_KEY
-        generateValue: true
-      - key: ENVIRONMENT
-        value: production
-    autoDeploy: true
-    plan: starter
-
-  # Ollama Proxy Service (optional - comment out if using Gemini)
-  # - type: web
-  #   name: hoistscout-ollama
-  #   runtime: docker
-  #   repo: https://github.com/jakelindsay87/hoistscout
-  #   dockerfilePath: ollama-proxy/Dockerfile
-  #   envVars:
-  #     - key: MOCK_MODE
-  #       value: "true"
-  #     - key: PYTHONUNBUFFERED
-  #       value: "1"
-  #   healthCheckPath: /health
-  #   autoDeploy: true
-  #   plan: starter
-
-# Database
-databases:
-  - name: hoistscout-db
-    databaseName: hoistscout
-    user: hoistscout_user
-    plan: free
-    postgresMajorVersion: 16

@@ -49,5 +49,11 @@ RUN pip install --no-cache-dir scrapegraphai==1.60.0
 RUN playwright install chromium
 RUN playwright install-deps
 
-# Run the worker
-CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info", "--pool=solo"]
+# Copy the worker with health check script
+COPY ./worker_with_health.py /app/worker_with_health.py
+
+# Expose port for health checks
+EXPOSE 8080
+
+# Run the worker with health check
+CMD ["python", "/app/worker_with_health.py"]
